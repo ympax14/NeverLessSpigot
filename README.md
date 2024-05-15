@@ -3,7 +3,9 @@
 ## New
 **Here's the details about what is new:**<br>
 ```
- - Tickless Knockback/Entity Movement Packets
+ - Tickless Packets:
+  - Knockbacks
+  - Entity Movements
  - Thread affinity
  - WindSpigot config
  - Mob AI toggle command
