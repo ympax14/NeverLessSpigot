@@ -3,6 +3,7 @@
 ## New
 **Here's the details about what is new:**<br>
 ```
+ - Tickless Knockback/Entity Movement Packets
  - Thread affinity
  - WindSpigot config
  - Mob AI toggle command
