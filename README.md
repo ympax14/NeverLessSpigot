@@ -1,7 +1,9 @@
 # NeverLessSpigot
 
-# Patches
-
+## Patches
+**All credit goes to the people that made these patches.**<br>
+*Give credit where credit is due!*
+```
 [WindSpigot-0001] Thread affinity
 [WindSpigot-0002] WindSpigot config
 [WindSpigot-0003] Mob AI toggle command
@@ -18,7 +20,6 @@
 [WindSpigot-0014] Async entity path searching
 [WindSpigot-0015] Configurable explosion animations and sound
 [WindSpigot-0016] Configurable weather changes
-[WindSpigot-0017] Configurable fishing rod speed multiplier
 
 [Spigot-0097] Remove DataWatcher Locking by spottedleaf
 [Spigot-0138] Branchless NibbleArray by md5
@@ -190,3 +191,4 @@
 [Sugarcane-0022] Add YAML comments
 
 [AW-Spigot-????] Fast randoms
+```
