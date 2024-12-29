@@ -11,7 +11,6 @@
  - Mob AI toggle command
  - Parallel world ticking
  - Disable mob spawning if tps is not stable
- - Remove FastMath
  - Player ping command
  - Make NachoSpigot's async TNT configurable
  - Configurable entity hit delay
