@@ -7,9 +7,11 @@ import java.net.SocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -138,6 +140,17 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
 	public GameProfile getProfile() {
 		return getHandle().getProfile();
+	}
+
+	public String isPremium() {
+		GameProfile gameProfile = getProfile();
+		
+		if (gameProfile.getProperties().containsKey("LoginMethod")) {
+			Optional<com.mojang.authlib.properties.Property> PremiumProperty = gameProfile.getProperties().get("LoginMethod").stream().filter(properties -> properties.getName() == "isPremium").findFirst();
+			
+			return PremiumProperty.isPresent() ? PremiumProperty.get().getValue() : "true";
+
+		} else return "true";
 	}
 
 	@Override

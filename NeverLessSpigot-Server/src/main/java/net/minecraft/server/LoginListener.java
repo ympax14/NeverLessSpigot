@@ -24,6 +24,7 @@ import org.bukkit.plugin.AuthorNagException;
 import com.google.common.base.Charsets;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
+import com.mojang.authlib.properties.Property;
 
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -217,11 +218,12 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 			// Paper start - Cache authenticator threads
 			authenticatorPool.execute(() -> {
 				GameProfile gameprofile = LoginListener.this.i;
+
 				try {
 					String s = (new BigInteger(MinecraftEncryption.a(LoginListener.this.j,
 							LoginListener.this.server.Q().getPublic(), LoginListener.this.loginKey))).toString(16);
-					LoginListener.this.i = LoginListener.this.server.aD()
-							.hasJoinedServer(new GameProfile((UUID) null, gameprofile.getName()), s);
+					LoginListener.this.i = LoginListener.this.server.aD().hasJoinedServer(new GameProfile((UUID) null, gameprofile.getName()), s);
+					
 					if (LoginListener.this.i != null) {
 						// CraftBukkit start - fire PlayerPreLoginEvent
 						if (!networkManager.g()) {
@@ -229,26 +231,29 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 						}
 						new LoginHandler().fireEvents();
 					} else if (LoginListener.this.server.T()) {
+						gameprofile.getProperties().put("LoginMethod", new Property("isPremium", "null"));
 						LoginListener.c.warn("Failed to verify username but will let them in anyway!");
 						LoginListener.this.i = LoginListener.this.a(gameprofile);
 						LoginListener.this.g = EnumProtocolState.READY_TO_ACCEPT;
 					} else {
-						LoginListener.this.disconnect("Failed to verify username!");
-						LoginListener.c.error(
-								"Username '" + gameprofile.getName() + "' tried to join with an invalid session"); // CraftBukkit
+						/*LoginListener.this.disconnect("Failed to verify username!");
+						LoginListener.c.error("Username '" + gameprofile.getName() + "' tried to join with an invalid session");*/ // CraftBukkit
 																													// -
 																													// fix
 																													// null
 																													// pointer
+						gameprofile.getProperties().put("LoginMethod", new Property("isPremium", "false"));
+						LoginListener.this.i = LoginListener.this.a(gameprofile);
+						LoginListener.this.g = EnumProtocolState.READY_TO_ACCEPT;
 					}
 				} catch (AuthenticationUnavailableException authenticationunavailableexception) {
 					if (LoginListener.this.server.T()) {
+						gameprofile.getProperties().put("LoginMethod", new Property("isPremium", "null"));
 						LoginListener.c.warn("Authentication servers are down but will let them in anyway!");
 						LoginListener.this.i = LoginListener.this.a(gameprofile);
 						LoginListener.this.g = EnumProtocolState.READY_TO_ACCEPT;
 					} else {
-						LoginListener.this
-								.disconnect("Authentication servers are down. Please try again later, sorry!");
+						LoginListener.this.disconnect("Authentication servers are down. Please try again later, sorry!");
 						LoginListener.c.error("Couldn't verify username because servers are unavailable");
 					}
 					// CraftBukkit start - catch all exceptions
@@ -258,7 +263,6 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 							exception);
 					// CraftBukkit end
 				}
-
 			});
 		}
 	}
@@ -299,8 +303,7 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 				return;
 			}
 			// CraftBukkit end
-			LoginListener.c
-					.info("UUID of player " + LoginListener.this.i.getName() + " is " + LoginListener.this.i.getId());
+			LoginListener.c.info("UUID of player " + LoginListener.this.i.getName() + " is " + LoginListener.this.i.getId());
 			LoginListener.this.g = LoginListener.EnumProtocolState.READY_TO_ACCEPT;
 		}
 	}
@@ -308,8 +311,9 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 
 	protected GameProfile a(GameProfile gameprofile) {
 		UUID uuid = UUID.nameUUIDFromBytes(("OfflinePlayer:" + gameprofile.getName()).getBytes(Charsets.UTF_8));
-
-		return new GameProfile(uuid, gameprofile.getName());
+		GameProfile gp = new GameProfile(uuid, gameprofile.getName());
+		gp.getProperties().put("LoginMethod", gameprofile.getProperties().get("LoginMethod").iterator().next());
+		return gp;
 	}
 
 	static enum EnumProtocolState {
