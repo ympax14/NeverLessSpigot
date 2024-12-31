@@ -226,6 +226,7 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 					
 					if (LoginListener.this.i != null) {
 						// CraftBukkit start - fire PlayerPreLoginEvent
+						LoginListener.this.i.getProperties().put("LoginMethod", new Property("isPremium", "true"));
 						if (!networkManager.g()) {
 							return;
 						}
