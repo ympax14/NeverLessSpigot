@@ -146,7 +146,7 @@ public abstract class MinecraftServer extends ReentrantIAsyncHandler<TasksPerTic
 	protected NeverLessSpigot neverlessSpigot;
 	
 	// NeverLessSpigot - MSPT for tps command
-	private double lastMspt;
+	public double lastMspt;
 
 	// NeverLessSpigot start - backport modern tick loop
 	private long nextTickTime;
