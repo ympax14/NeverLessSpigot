@@ -170,11 +170,11 @@
     </dependency>
   </dependencies>
   <properties>
-    <buildtag.prefix>git-Bukkit-</buildtag.prefix>
     <api.version>unknown</api.version>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <buildtag.prefix>git-Bukkit-</buildtag.prefix>
     <maven.compiler.source>1.8</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.target>1.8</maven.compiler.target>
     <junit.version>4.13.2</junit.version>
   </properties>
 </project>

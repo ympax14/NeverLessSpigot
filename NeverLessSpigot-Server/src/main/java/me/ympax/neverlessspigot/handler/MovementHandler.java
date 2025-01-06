@@ -6,7 +6,11 @@ import org.bukkit.entity.Player;
 import net.minecraft.server.PacketPlayInFlying;
 
 public interface MovementHandler {
-	void updateLocation(Player paramPlayer, Location paramLocation1, Location paramLocation2, PacketPlayInFlying paramPacketPlayInFlying);
+	default boolean updateLocation(Player paramPlayer, Location to, Location from, PacketPlayInFlying paramPacketPlayInFlying) {
+		return true;
+	}
 
-	void updateRotation(Player paramPlayer, Location paramLocation1, Location paramLocation2, PacketPlayInFlying paramPacketPlayInFlying);
+	default boolean updateRotation(Player paramPlayer, Location to, Location from, PacketPlayInFlying paramPacketPlayInFlying) {
+		return true;
+	}
 }

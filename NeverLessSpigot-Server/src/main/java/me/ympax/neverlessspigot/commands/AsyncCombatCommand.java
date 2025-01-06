@@ -23,7 +23,7 @@ public class AsyncCombatCommand extends Command {
 	@Override
 	public boolean execute(CommandSender sender, String currentAlias, String[] args) {
 		if (!testPermission(sender)) {
-			return true;
+			return false;
 		}
 
 		asyncCombat = !asyncCombat;

@@ -392,7 +392,9 @@ public class PlayerConnection implements PacketListenerPlayIn, IUpdatePlayerList
 				if ((packetplayinflying.hasPos) && ((delta > 0.0D) && (this.checkMovement && !this.player.dead))) {
 					for (me.ympax.neverlessspigot.handler.MovementHandler movementListener : NeverLessSpigot.getInstance().getMovementHandlers()) {
 						try {
-							movementListener.updateLocation(player, to, from, packetplayinflying);
+							if (!movementListener.updateLocation(player, to, from, packetplayinflying)) {
+								return;
+							}
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -403,7 +405,9 @@ public class PlayerConnection implements PacketListenerPlayIn, IUpdatePlayerList
 						&& ((deltaAngle > 0.0F) && (this.checkMovement && !this.player.dead))) {
 					for (me.ympax.neverlessspigot.handler.MovementHandler movementListener : NeverLessSpigot.getInstance().getMovementHandlers()) {
 						try {
-							movementListener.updateRotation(player, to, from, packetplayinflying);
+							if (!movementListener.updateRotation(player, to, from, packetplayinflying)) {
+								return;
+							}
 						} catch (Exception e) {
 							e.printStackTrace();
 						}

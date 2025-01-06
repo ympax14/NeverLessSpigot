@@ -87,7 +87,6 @@ org\bukkit\craftbukkit\help\SimpleHelpMap.class
 org\bukkit\craftbukkit\CraftSound.class
 net\minecraft\server\BlockPoweredRail$1.class
 net\minecraft\server\BlockSponge.class
-net\minecraft\server\ServerConnection$1.class
 net\minecraft\server\NameReferencingFileConverter$2.class
 org\bukkit\craftbukkit\inventory\InventoryWrapper.class
 net\minecraft\server\ContainerHopper.class
@@ -420,7 +419,6 @@ net\minecraft\server\EntityWither.class
 net\minecraft\server\EntityChicken.class
 net\minecraft\server\DispenseBehaviorProjectile.class
 org\bukkit\craftbukkit\CraftWorld$3.class
-net\minecraft\server\PacketPlayOutPlayerInfo$1.class
 net\minecraft\server\EntityIronGolem$PathfinderGoalNearestGolemTarget.class
 net\minecraft\server\DispenseBehaviorItem.class
 net\minecraft\server\EntityWolf.class
@@ -456,6 +454,7 @@ net\minecraft\server\BlockFire.class
 net\minecraft\server\ContainerBeacon.class
 org\spigotmc\TicksPerSecondCommand.class
 co\aikar\timings\SpigotTimings.class
+net\minecraft\server\PacketPlayOutEntityTeleport.class
 org\bukkit\craftbukkit\inventory\CraftInventoryBeacon.class
 net\minecraft\server\EntityMonster.class
 org\bukkit\craftbukkit\inventory\CraftInventoryCustom.class
