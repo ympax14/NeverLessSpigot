@@ -1370,6 +1370,9 @@ public abstract class EntityHuman extends EntityLiving {
 							velY = 0.0;
 						}
 
+						entity.motX = velX;
+						entity.motY = velY;
+						entity.motZ = velZ;
 
 						if (entity instanceof EntityPlayer && entity.velocityChanged) {
 							try {
@@ -1389,10 +1392,6 @@ public abstract class EntityHuman extends EntityLiving {
 								e.printStackTrace();
 							}
 						}
-
-						entity.motX = velX;
-						entity.motY = velY;
-						entity.motZ = velZ;
 
 						if (flag) {
 							this.b(entity);
