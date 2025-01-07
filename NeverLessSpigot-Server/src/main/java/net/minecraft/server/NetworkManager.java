@@ -228,7 +228,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 				}
 			} else {   
 				// Check if the packet is a knockback packet
-		        if ((NeverLessSpigotConfig.asyncCombat || NeverLessSpigotConfig.ticklessCombat) && ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType() == EntityType.PLAYER) || packet instanceof PacketPlayOutPosition || packet instanceof PacketPlayInFlying.PacketPlayInPosition || packet instanceof PacketPlayInFlying)) {
+		        if ((NeverLessSpigotConfig.asyncCombat || NeverLessSpigotConfig.ticklessCombat) && ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER)) || packet instanceof PacketPlayOutPosition || packet instanceof PacketPlayInFlying.PacketPlayInPosition || packet instanceof PacketPlayInFlying)) {
 		        	// Send it with high priority
 		        	NeverLessSpigot.getInstance().getKnockbackThread().addPacket(packet, this, null);
 					if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getKnockbackThread().run();

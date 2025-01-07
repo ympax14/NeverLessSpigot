@@ -13,10 +13,7 @@ public class CombatThread extends AsyncOutPacketThread {
     @Override
     public void run() {
         while (this.packets.size() > 0) {
-            Runnable runnable = this.packets.poll();
-            if (runnable != null) {
-                runnable.run();
-            }
+            this.packets.poll().run();
         }
     }
 } 
