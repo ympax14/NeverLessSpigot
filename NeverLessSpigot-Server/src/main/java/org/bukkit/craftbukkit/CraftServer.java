@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -188,7 +189,7 @@ public final class CraftServer implements Server {
 	private YamlConfiguration configuration;
 	private YamlConfiguration commandsConfiguration;
 	private final Yaml yaml = new Yaml(new SafeConstructor());
-	private final Map<UUID, OfflinePlayer> offlinePlayers = new MapMaker().softValues().makeMap();
+	private final Map<UUID, OfflinePlayer> offlinePlayers = new WeakHashMap<>();
 	private final EntityMetadataStore entityMetadata = new EntityMetadataStore();
 	private final PlayerMetadataStore playerMetadata = new PlayerMetadataStore();
 	private final WorldMetadataStore worldMetadata = new WorldMetadataStore();

@@ -1,6 +1,7 @@
 package net.minecraft.server;
 
 import java.util.AbstractSet;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +120,7 @@ public class EntitySlice<T> extends AbstractSet<T> {
 				List list = EntitySlice.this.b.get(EntitySlice.this.b(oclass));
 
 				if (list == null) {
-					return Iterators.emptyIterator();
+					return Collections.emptyIterator();
 				} else {
 					Iterator iterator = list.iterator();
 
@@ -131,7 +132,7 @@ public class EntitySlice<T> extends AbstractSet<T> {
 
 	@Override
 	public Iterator<T> iterator() {
-		return this.e.isEmpty() ? Iterators.<T>emptyIterator() : Iterators.unmodifiableIterator(this.e.iterator());
+		return this.e.isEmpty() ? Collections.emptyIterator() : Iterators.unmodifiableIterator(this.e.iterator());
 	}
 
 	@Override
