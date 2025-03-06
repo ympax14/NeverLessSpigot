@@ -1259,6 +1259,9 @@ public abstract class EntityHuman extends EntityLiving {
 	public void attack(Entity entity) {
 		if (entity.aD()) {
 			if (!entity.l(this)) {
+				if (MinecraftServer.currentTick - entity.lastProjectileHitTick <= 10) {
+					return;
+				}
 				float f = (float) this.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
 				byte b0 = 0;
 				float f1 = 0.0F;

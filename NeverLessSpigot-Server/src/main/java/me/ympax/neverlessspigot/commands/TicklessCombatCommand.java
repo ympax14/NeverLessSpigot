@@ -33,10 +33,11 @@ public class TicklessCombatCommand extends Command {
         NeverLessSpigotConfig.ticklessCombat = ticklessCombat;
 		NeverLessSpigotConfig.set("settings.tickless.combat", ticklessCombat);
 
-        if (ticklessCombat && (NeverLessSpigot.getInstance().getKnockbackThread() == null || NeverLessSpigot.getInstance().getKnockbackThread().isRunning() == false)) {
-            NeverLessSpigot.getInstance().startKnockbackThread();
+        if (ticklessCombat && (NeverLessSpigot.getInstance().getKnockbackThread() == null || NeverLessSpigot.getInstance().getKnockbackThread().isRunning() == false) && (NeverLessSpigot.getInstance().getHitDetectionThread() == null || NeverLessSpigot.getInstance().getHitDetectionThread().isRunning() == false)) {
+            NeverLessSpigot.getInstance().startAsyncThreads();
         } else if (!ticklessCombat && !NeverLessSpigotConfig.asyncCombat) {
             NeverLessSpigot.getInstance().getKnockbackThread().stop();
+			NeverLessSpigot.getInstance().getKnockbackThread().stop();
         }
 
 		sender.sendMessage((ticklessCombat ? ChatColor.GREEN : ChatColor.RED) + "Tickless Combat is now " + status + ".");

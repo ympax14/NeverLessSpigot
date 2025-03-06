@@ -35,6 +35,7 @@ public class NeverLessSpigot {
 	private static NeverLessSpigot INSTANCE;
 	
 	private CombatThread knockbackThread;
+	private CombatThread hitDetectionThread;
 	
 	private final Executor statisticsExecutor = Executors
 			.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("NeverLessSpigot Statistics Thread")
@@ -128,7 +129,7 @@ public class NeverLessSpigot {
 		}
 	}
 
-	public void startKnockbackThread() {
+	public void startAsyncThreads() {
 		if (knockbackThread != null && knockbackThread.isRunning()) {
 			try {        
 				knockbackThread.stop();     
@@ -138,7 +139,17 @@ public class NeverLessSpigot {
 			}
 		}
 
+		if (hitDetectionThread != null && hitDetectionThread.isRunning()) {
+			try {        
+				hitDetectionThread.stop();     
+				hitDetectionThread.getThread().join(); 
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
 		knockbackThread = new CombatThread("Knockback Thread");
+		hitDetectionThread = new CombatThread("HitDetection Thread");
 	}
 
 	private void init() {
@@ -151,7 +162,7 @@ public class NeverLessSpigot {
 		}
 		
 		if (NeverLessSpigotConfig.asyncCombat || NeverLessSpigotConfig.ticklessCombat) {
-			startKnockbackThread();
+			startAsyncThreads();
 		}
 		lagCompensator = new LagCompensator();	
 		if (NeverLessSpigotConfig.asyncTnt) {
@@ -164,6 +175,10 @@ public class NeverLessSpigot {
 
 	public StatisticsClient getClient() {
 		return this.client;
+	}
+
+	public CombatThread getHitDetectionThread() {
+		return hitDetectionThread;
 	}
 	
 	public CombatThread getKnockbackThread() {

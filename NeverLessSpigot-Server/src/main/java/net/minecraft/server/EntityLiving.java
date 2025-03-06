@@ -989,7 +989,13 @@ public abstract class EntityLiving extends Entity {
 					vertical = kb.getVertical();
 				}
 
+				this.lastProjectileHitTick = MinecraftServer.currentTick;
 				isProjectile = true;
+
+				// Reset Motions so it doesn't add with projectiles
+				this.motX = 0;
+				this.motY = 0;
+				this.motZ = 0;
 			} else {
 				horizontal = kb.getHorizontal();
 				vertical = kb.getVertical();

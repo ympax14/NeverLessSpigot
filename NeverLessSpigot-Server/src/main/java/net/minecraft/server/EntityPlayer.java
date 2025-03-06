@@ -1208,9 +1208,13 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 
 	public void attackAsync(Entity entity) {
     	if (entity.aD() && !entity.l(this)) {
-        	NeverLessSpigot.getInstance().getKnockbackThread().addTask(new Runnable() {
+        	NeverLessSpigot.getInstance().getHitDetectionThread().addTask(new Runnable() {
 				@Override
 				public void run() {
+					if (MinecraftServer.currentTick - entity.lastProjectileHitTick <= 10) {
+						return;
+					}
+
 					float damage = (float) EntityPlayer.this.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
 					float enchantDamage = EnchantmentManager.a(EntityPlayer.this.bA(), (entity instanceof EntityLiving) ? ((EntityLiving) entity).getMonsterType() : EnumMonsterType.UNDEFINED);
 					int fireAspectLevel = EnchantmentManager.getFireAspectEnchantmentLevel(EntityPlayer.this);
@@ -1318,7 +1322,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 		} else {
 			if (NeverLessSpigotConfig.ticklessCombat || NeverLessSpigotConfig.asyncCombat) {
 				attackAsync(entity);
-				if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getKnockbackThread().run();
+				if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getHitDetectionThread().run();
 			} else {
 				super.attack(entity);	
 			}

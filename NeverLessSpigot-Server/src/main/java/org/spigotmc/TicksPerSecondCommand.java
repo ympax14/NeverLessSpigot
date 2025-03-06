@@ -62,7 +62,7 @@ public class TicksPerSecondCommand extends Command {
 		message += ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(MinecraftServer.getServer().getLastMspt() * 100.0) / 100.0;
 
 		if (NeverLessSpigot.getInstance().getKnockbackThread() != null && NeverLessSpigot.getInstance().getKnockbackThread().isRunning()) {
-			message += ChatColor.DARK_PURPLE + "\n\n├ Knockback Thread\n";
+			message += ChatColor.DARK_PURPLE.toString() + ChatColor.UNDERLINE + "\n├ Knockback Thread\n";
 			String tpsResult = "";
 
 			if (NeverLessSpigotConfig.ticklessCombat == true) {
@@ -77,6 +77,24 @@ public class TicksPerSecondCommand extends Command {
 			
 			message += ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + tpsResult + "\n";
 			message += ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(NeverLessSpigot.getInstance().getKnockbackThread().getLastMspt() * 100.0) / 100.0;
+		}
+
+		if (NeverLessSpigot.getInstance().getHitDetectionThread() != null && NeverLessSpigot.getInstance().getHitDetectionThread().isRunning()) {
+			message += ChatColor.DARK_PURPLE.toString() + ChatColor.UNDERLINE + "\n├ HitDetection Thread\n";
+			String tpsResult = "";
+
+			if (NeverLessSpigotConfig.ticklessCombat == true) {
+				tpsResult = "Tickless";
+			} else {
+
+				double[] kbTps = NeverLessSpigot.getInstance().getHitDetectionThread().getTPS();
+				String[] tpsAvgKb = new String[kbTps.length];
+
+				tpsResult = org.apache.commons.lang.StringUtils.join(tpsAvgKb, ", ");
+			}
+			
+			message += ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + tpsResult + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(NeverLessSpigot.getInstance().getHitDetectionThread().getLastMspt() * 100.0) / 100.0;
 		}
 
 		sender.sendMessage(message);

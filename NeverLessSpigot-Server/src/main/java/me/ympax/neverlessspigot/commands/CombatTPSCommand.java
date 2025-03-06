@@ -37,6 +37,10 @@ public class CombatTPSCommand extends Command {
 				NeverLessSpigot.getInstance().getKnockbackThread().setTPS(tps);
 			}
 
+			if (NeverLessSpigot.getInstance().getHitDetectionThread() != null && NeverLessSpigot.getInstance().getHitDetectionThread().isRunning()) {
+				NeverLessSpigot.getInstance().getHitDetectionThread().setTPS(tps);
+			}
+
 			sender.sendMessage(ChatColor.GREEN + "Players TPS is now set at " + ChatColor.GOLD + tps + ChatColor.GREEN + ".");
 			return true;
 		} catch (Exception ex) {

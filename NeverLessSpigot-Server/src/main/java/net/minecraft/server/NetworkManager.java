@@ -262,18 +262,9 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 					shouldCheckPacket = true;
 				}
 			} else {
-				if (NeverLessSpigotConfig.ticklessCombat) {
-					if ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER))
-							|| packet instanceof PacketPlayOutPosition) {
-							Spigot404Write.writeThenFlush(this.channel, packet, null);
-							return;
-					}
-				} else if (NeverLessSpigotConfig.asyncCombat) {
-					if ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER))
-							|| packet instanceof PacketPlayOutPosition) {
-						NeverLessSpigot.getInstance().getKnockbackThread().addPacket(packet, this, null);
-						return;
-					}
+				if ((NeverLessSpigotConfig.ticklessCombat || NeverLessSpigotConfig.asyncCombat) && (packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER))) {
+					NeverLessSpigot.getInstance().getKnockbackThread().addPacket(packet, this, null);
+					if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getKnockbackThread().run();
 				}
 			}
 			
