@@ -72,6 +72,7 @@ import com.google.common.collect.Sets;
 import com.mojang.authlib.GameProfile;
 
 import me.ympax.neverlessspigot.NeverLessSpigot;
+import me.ympax.neverlessspigot.async.netty.Spigot404Write;
 import me.ympax.neverlessspigot.cache.Constants;
 import me.ympax.neverlessspigot.config.NeverLessSpigotConfig;
 import io.netty.buffer.Unpooled;

@@ -14,16 +14,24 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
+import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityCombustByEntityEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
 // CraftBukkit end
+import org.bukkit.event.player.PlayerVelocityEvent;
+import org.bukkit.util.Vector;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.mojang.authlib.GameProfile;
 
+import dev.cobblesword.nachospigot.knockback.KnockbackProfile;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import me.ympax.neverlessspigot.NeverLessSpigot;
+import me.ympax.neverlessspigot.config.NeverLessSpigotConfig;
+import me.ympax.neverlessspigot.knockback.KnockbackConfig;
 
 public class EntityPlayer extends EntityHuman implements ICrafting {
 
@@ -35,7 +43,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 	public double d;
 	public double e;
 	public final List<ChunkCoordIntPair> chunkCoordIntPairQueue = Lists.newLinkedList();
-	// public final List<Integer> removeQueue = Lists.newLinkedList();
+	public final List<Integer> removeQueue = Lists.newLinkedList();
 	private final ServerStatisticManager bK;
 	private float bL = Float.MIN_VALUE;
 	private float bM = -1.0E8F;
@@ -232,16 +240,21 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 			this.activeContainer = this.defaultContainer;
 		}
 
-		/*
-		 * while (!this.removeQueue.isEmpty()) { int i =
-		 * Math.min(this.removeQueue.size(), Integer.MAX_VALUE); int[] aint = new
-		 * int[i]; Iterator<Integer> iterator = this.removeQueue.iterator(); int j = 0;
-		 * 
-		 * while (iterator.hasNext() && j < i) { aint[j++] =
-		 * (iterator.next()).intValue(); iterator.remove(); }
-		 * 
-		 * this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(aint)); }
-		 */
+		
+		while (!this.removeQueue.isEmpty()) {
+            int i = Math.min(this.removeQueue.size(), Integer.MAX_VALUE);
+            int[] aint = new int[i];
+            Iterator<Integer> iterator = this.removeQueue.iterator();
+            int j = 0;
+
+            while (iterator.hasNext() && j < i) {
+                aint[j++] = ((Integer) iterator.next()).intValue();
+                iterator.remove();
+            }
+
+            this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(aint));
+        }
+		 
 
 		if (!this.chunkCoordIntPairQueue.isEmpty()) {
 			ArrayList<Chunk> chunkList = Lists.newArrayList();
@@ -1023,7 +1036,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 		this.lastSentExp = -1;
 		this.bM = -1.0F;
 		this.bN = -1;
-		// this.removeQueue.addAll(((EntityPlayer) entityhuman).removeQueue);
+		this.removeQueue.addAll(((EntityPlayer) entityhuman).removeQueue);
 	}
 
 	@Override
@@ -1159,7 +1172,11 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 	}
 
 	public void d(Entity entity) {
-		this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(entity.getId()));
+		if (entity instanceof EntityHuman) {
+            this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(new int[] { entity.getId()}));
+        } else {
+            this.removeQueue.add(Integer.valueOf(entity.getId()));
+        }
 	}
 
 	@Override
@@ -1189,14 +1206,123 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 
 	}
 
+	public void attackAsync(Entity entity) {
+    	if (entity.aD() && !entity.l(this)) {
+        	NeverLessSpigot.getInstance().getKnockbackThread().addTask(new Runnable() {
+				@Override
+				public void run() {
+					float damage = (float) EntityPlayer.this.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
+					float enchantDamage = EnchantmentManager.a(EntityPlayer.this.bA(), (entity instanceof EntityLiving) ? ((EntityLiving) entity).getMonsterType() : EnumMonsterType.UNDEFINED);
+					int fireAspectLevel = EnchantmentManager.getFireAspectEnchantmentLevel(EntityPlayer.this);
+	
+					KnockbackProfile knockback = (entity.getKnockbackProfile() == null ? KnockbackConfig.getCurrentKb() : entity.getKnockbackProfile());
+					double deltaX = entity.locX - EntityPlayer.this.locX;
+					double deltaZ = entity.locZ - EntityPlayer.this.locZ;
+					double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+					if (distance == 0) distance = 1;
+					double directionX = deltaX / distance;
+					double directionZ = deltaZ / distance;
+	
+					double velX, velY, velZ;
+					if (knockback.getInheritHorizontal()) {
+						double entityVelX = entity.motX * knockback.getInheritHorizontalStrength();
+						double entityVelZ = entity.motZ * knockback.getInheritHorizontalStrength();
+						velX = entityVelX + directionX;
+						velZ = entityVelZ + directionZ;
+					} else {
+						velX = directionX;
+						velZ = directionZ;
+					}
+	
+					velX *= knockback.getHorizontal();
+					velZ *= knockback.getHorizontal();
+	
+					if (knockback.getInheritVertical()) {
+						velY = entity.motY * knockback.getInheritVerticalStrength() + knockback.getVertical();
+					} else {
+						velY = knockback.getVertical();
+					}
+	
+					if (entity.onGround) {
+						velX *= knockback.getGroundHorizontalMultiplier();
+						velY *= knockback.getGroundVerticalMultiplier();
+						velZ *= knockback.getGroundHorizontalMultiplier();
+					}
+	
+					int enchLvl = EnchantmentManager.getEnchantmentLevel(Enchantment.KNOCKBACK.id, EntityPlayer.this.inventory.getItemInHand());
+					if (enchLvl > 0) {
+						velX += enchLvl * 0.6;
+						velZ += enchLvl * 0.6;
+					}
+	
+					if (EntityPlayer.this.shouldDealSprintKnockback) {
+						velX += 1 * knockback.getSprintHorizontalMultiplier();
+						velY += 1 * knockback.getSprintVerticalMultiplier();
+						velZ += 1 * knockback.getSprintHorizontalMultiplier();
+						EntityPlayer.this.shouldDealSprintKnockback = false;
+					}
+	
+					double yOff = entity.locY - EntityPlayer.this.locY;
+					if (knockback.getComboMode() && (yOff > knockback.getComboHeight() || MinecraftServer.currentTick - EntityPlayer.this.ticksDown < knockback.getComboTicks())) {
+						velY = knockback.getComboVelocity();
+					}
+					if (knockback.getLimitVertical() && yOff > knockback.getVerticalMax()) {
+						velY = 0.0;
+					}
+
+					final double vX = velX;
+					final double vY = velY;
+					final double vZ = velZ;
+	
+					MinecraftServer.getServer().postToMainThread(() -> EntityPlayer.this.applyAsyncAttack(entity, damage, enchantDamage, fireAspectLevel, vX, vY, vZ));
+				}
+        	});
+    	}
+	}
+
+	private void applyAsyncAttack(Entity entity, float damage, float enchantDamage, int fireAspect, double velX, double velY, double velZ) {
+    	if (entity.damageEntity(DamageSource.playerAttack(this), damage + enchantDamage)) {
+        	entity.motX = velX;
+        	entity.motY = velY;
+        	entity.motZ = velZ;
+
+        	if (fireAspect > 0 && !entity.isBurning()) {
+            	EntityCombustByEntityEvent combustEvent = new EntityCombustByEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), fireAspect * 4);
+            	Bukkit.getPluginManager().callEvent(combustEvent);
+            	if (!combustEvent.isCancelled()) {
+                	entity.setOnFire(combustEvent.getDuration());
+            	}
+        	}
+
+        	if (entity instanceof EntityPlayer) {
+            	EntityPlayer victim = (EntityPlayer) entity;
+				final Vector velocity = new Vector(velX, velY, velZ);
+				PlayerVelocityEvent event = new PlayerVelocityEvent(victim.getBukkitEntity(), velocity);
+				org.bukkit.Bukkit.getPluginManager().callEvent(event);
+				if (!event.isCancelled()) {
+					if (!velocity.equals(event.getVelocity())) {
+						((Player) entity.getBukkitEntity()).setVelocity(velocity);
+					}
+
+					victim.playerConnection.sendPacket(new PacketPlayOutEntityVelocity(victim.getId(), velX, velY, velZ));
+					victim.velocityChanged = false;
+				}
+        	}
+    	}
+	}
+
 	@Override
 	public void attack(Entity entity) {
 		if (this.playerInteractManager.getGameMode() == WorldSettings.EnumGamemode.SPECTATOR) {
 			this.setSpectatorTarget(entity);
 		} else {
-			super.attack(entity);
+			if (NeverLessSpigotConfig.ticklessCombat || NeverLessSpigotConfig.asyncCombat) {
+				attackAsync(entity);
+				if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getKnockbackThread().run();
+			} else {
+				super.attack(entity);	
+			}
 		}
-
 	}
 
 	public long D() {

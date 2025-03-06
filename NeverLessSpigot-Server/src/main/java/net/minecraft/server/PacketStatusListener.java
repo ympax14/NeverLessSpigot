@@ -145,13 +145,13 @@ public class PacketStatusListener implements PacketStatusInListener {
 																															// protocol
 																															// changes
 
-		this.networkManager.handle(new PacketStatusOutServerInfo(ping));
+		this.networkManager.handleSend(new PacketStatusOutServerInfo(ping));
 		// CraftBukkit end
 	}
 
 	@Override
 	public void a(PacketStatusInPing packetstatusinping) {
-		this.networkManager.handle(new PacketStatusOutPong(packetstatusinping.a()));
+		this.networkManager.handleSend(new PacketStatusOutPong(packetstatusinping.a()));
 		this.networkManager.close(PacketStatusListener.a);
 	}
 }

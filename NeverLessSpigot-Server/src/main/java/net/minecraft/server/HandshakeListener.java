@@ -41,7 +41,7 @@ public class HandshakeListener implements PacketHandshakingInListener {
 							&& currentTime - throttleTracker.get(address) < connectionThrottle) {
 						throttleTracker.put(address, currentTime);
 						text = new ChatComponentText("Connection throttled! Please wait before reconnecting.");
-						this.b.handle(new PacketLoginOutDisconnect(text));
+						this.b.handleSend(new PacketLoginOutDisconnect(text));
 						this.b.close(text);
 						return;
 					}
@@ -63,12 +63,12 @@ public class HandshakeListener implements PacketHandshakingInListener {
 			if (packethandshakinginsetprotocol.b() > 47) {
 				text = new ChatComponentText(
 						java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedServerMessage, "1.8.8")); // Spigot
-				this.b.handle(new PacketLoginOutDisconnect(text));
+				this.b.handleSend(new PacketLoginOutDisconnect(text));
 				this.b.close(text);
 			} else if (packethandshakinginsetprotocol.b() < 47) {
 				text = new ChatComponentText(
 						java.text.MessageFormat.format(org.spigotmc.SpigotConfig.outdatedClientMessage, "1.8.8")); // Spigot
-				this.b.handle(new PacketLoginOutDisconnect(text));
+				this.b.handleSend(new PacketLoginOutDisconnect(text));
 				this.b.close(text);
 			} else {
 				this.b.a(new LoginListener(this.a, this.b));
@@ -85,7 +85,7 @@ public class HandshakeListener implements PacketHandshakingInListener {
 						// If we've failed somehow, let the client know so and go no further.
 						if (event.isFailed()) {
 							text = new ChatComponentText(event.getFailMessage());
-							this.b.handle(new PacketLoginOutDisconnect(text));
+							this.b.handleSend(new PacketLoginOutDisconnect(text));
 							this.b.close(text);
 							return;
 						}
@@ -114,7 +114,7 @@ public class HandshakeListener implements PacketHandshakingInListener {
 					} else {
 						text = new ChatComponentText(
 								"If you wish to use IP forwarding, please enable it in your BungeeCord config as well!");
-						this.b.handle(new PacketLoginOutDisconnect(text));
+						this.b.handleSend(new PacketLoginOutDisconnect(text));
 						this.b.close(text);
 						return;
 					}

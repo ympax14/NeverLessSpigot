@@ -1302,9 +1302,6 @@ public abstract class EntityHuman extends EntityLiving {
 						// CraftBukkit end
 					}
 
-					double velX = entity.motX;
-					double velY = entity.motY;
-					double velZ = entity.motZ;
 					boolean flag2 = entity.damageEntity(DamageSource.playerAttack(this), f);
 
 					if (flag2) {
@@ -1312,42 +1309,63 @@ public abstract class EntityHuman extends EntityLiving {
 
 						KnockbackProfile knockback = (entity.getKnockbackProfile() == null ? KnockbackConfig.getCurrentKb() : entity.getKnockbackProfile());
 
-						double yOff;
-						int enchLvl;
-						if (knockback.getInheritHorizontal()) {
-							double entityVelX = entity.motX * knockback.getInheritHorizontalStrength();
-							double entityVelZ = entity.motZ * knockback.getInheritHorizontalStrength();
-							velX = entityVelX + Math.sin(Math.toRadians(this.yaw)) * -1.0;
-							velZ = entityVelZ + Math.cos(Math.toRadians(this.yaw));
-						} else {
-							velX = Math.sin(Math.toRadians(this.getHeadRotation())) * -1.0;
-							velZ = Math.cos(Math.toRadians(this.getHeadRotation()));
-						}
-						velX *= knockback.getHorizontal();
-						velZ *= knockback.getHorizontal();
-						if (knockback.getInheritVertical()) {
-							double entityVelY = entity.motY * knockback.getInheritVerticalStrength();
-							velY = entityVelY + knockback.getVertical();
-						} else {
-							velY = knockback.getVertical();
-						}
-						if (entity.onGround) {
-							velX *= knockback.getGroundHorizontalMultiplier();
-							velY *= knockback.getGroundVerticalMultiplier();
-							velZ *= knockback.getGroundHorizontalMultiplier();
-						}
-						if ((enchLvl = EnchantmentManager.getEnchantmentLevel(Enchantment.KNOCKBACK.id,
-								this.inventory.getItemInHand()) + 1) > 0) {
-							velX *= (double) enchLvl;
-							velZ *= (double) enchLvl;
-						}
-						/*if (this.shouldDealSprintKnockback) {
-							velX *= (knockback.sprintH.value).doubleValue();
-							velY *= (knockback.sprintV.value).doubleValue();
-							velZ *= (knockback.sprintH.value).doubleValue();
-							this.shouldDealSprintKnockback = false;
-						}
-						if (this.isSprinting()) {
+    					// Calcul de la direction du knockback en fonction de la position de l'entité attaquée
+    					double deltaX = entity.locX - this.locX;
+    					double deltaZ = entity.locZ - this.locZ;
+    					double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+
+    					if (distance == 0) distance = 1; // Évite une division par zéro
+
+    					double directionX = deltaX / distance;
+    					double directionZ = deltaZ / distance;
+
+    					double velX, velY, velZ;
+
+    					// Héritage de la vitesse horizontale si activé
+    					if (knockback.getInheritHorizontal()) {
+        					double entityVelX = entity.motX * knockback.getInheritHorizontalStrength();
+        					double entityVelZ = entity.motZ * knockback.getInheritHorizontalStrength();
+        					velX = entityVelX + directionX;
+        					velZ = entityVelZ + directionZ;
+    					} else {
+        					velX = directionX;
+        					velZ = directionZ;
+    					}
+
+    					// Application du knockback horizontal
+    					velX *= knockback.getHorizontal();
+    					velZ *= knockback.getHorizontal();
+
+    					// Héritage de la vitesse verticale si activé
+    					if (knockback.getInheritVertical()) {
+        					velY = entity.motY * knockback.getInheritVerticalStrength() + knockback.getVertical();
+    					} else {
+        					velY = knockback.getVertical();
+    					}
+
+    					// Knockback modifié si l'entité est au sol
+    					if (entity.onGround) {
+        					velX *= knockback.getGroundHorizontalMultiplier();
+        					velY *= knockback.getGroundVerticalMultiplier();
+        					velZ *= knockback.getGroundHorizontalMultiplier();
+    					}
+
+    					// Application de l'enchantement Knockback
+    					int enchLvl = EnchantmentManager.getEnchantmentLevel(Enchantment.KNOCKBACK.id, this.inventory.getItemInHand());
+    					if (enchLvl > 0) {
+        					velX += enchLvl * 0.6;
+        					velZ += enchLvl * 0.6;
+    					}
+
+    					// Knockback de sprint (s'il est activé dans la config)
+    					if (this.shouldDealSprintKnockback) {
+        					velX += 1 * knockback.getSprintHorizontalMultiplier();
+        					velY += 1 * knockback.getSprintVerticalMultiplier();
+        					velZ += 1 * knockback.getSprintHorizontalMultiplier();
+        					this.shouldDealSprintKnockback = false;
+    					}
+						
+						/*if (this.isSprinting()) {
 							velX *= (knockback.slowdown.value).doubleValue();
 							velZ *= (knockback.slowdown.value).doubleValue();
 							this.shouldDealSprintKnockback = false;
@@ -1355,6 +1373,8 @@ public abstract class EntityHuman extends EntityLiving {
 								this.setSprinting(false);
 							}
 						}*/
+
+						double yOff;
 						if (knockback.getComboMode()) {
 							yOff = entity.locY - this.locY;
 							if (yOff > knockback.getComboHeight()) {

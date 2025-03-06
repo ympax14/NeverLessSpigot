@@ -10,6 +10,7 @@ import java.util.logging.Level;
 
 import javax.crypto.SecretKey;
 
+import me.ympax.neverlessspigot.async.netty.Spigot404Write;
 import me.ympax.neverlessspigot.random.FastRandom;
 import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
@@ -94,8 +95,9 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 			LoginListener.c.info("Disconnecting " + this.d() + ": " + s);
 			ChatComponentText chatcomponenttext = new ChatComponentText(s);
 
-			this.networkManager.handle(new PacketLoginOutDisconnect(chatcomponenttext));
+			this.networkManager.handleSend(new PacketLoginOutDisconnect(chatcomponenttext));
 			this.networkManager.close(chatcomponenttext);
+			Spigot404Write.clean(this.networkManager.channel);
 		} catch (Exception exception) {
 			LoginListener.c.error("Error whilst disconnecting player", exception);
 		}
@@ -147,7 +149,7 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 				});
 			}
 
-			this.networkManager.handle(new PacketLoginOutSuccess(this.i));
+			this.networkManager.handleSend(new PacketLoginOutSuccess(this.i));
 			EntityPlayer entityplayer = this.server.getPlayerList().a(this.i.getId());
 
 			if (entityplayer != null) {
@@ -181,7 +183,7 @@ public class LoginListener implements PacketLoginInListener, IUpdatePlayerListBo
 		this.i = packetlogininstart.a();
 		if (this.server.getOnlineMode() && !this.networkManager.c()) {
 			this.g = LoginListener.EnumProtocolState.KEY;
-			this.networkManager.handle(new PacketLoginOutEncryptionBegin(this.j, this.server.Q().getPublic(), this.e));
+			this.networkManager.handleSend(new PacketLoginOutEncryptionBegin(this.j, this.server.Q().getPublic(), this.e));
 		} else {
 			// Spigot start
 			// Paper start - Cache authenticator threads

@@ -60,6 +60,7 @@ import com.google.common.primitives.Floats;
 import co.aikar.timings.SpigotTimings; // Spigot
 // CraftBukkit end
 import me.ympax.neverlessspigot.NeverLessSpigot;
+import me.ympax.neverlessspigot.async.netty.Spigot404Write;
 import me.ympax.neverlessspigot.config.NeverLessSpigotConfig;
 import me.ympax.neverlessspigot.events.PlayerIllegalBehaviourEvent;
 import io.netty.buffer.Unpooled;
@@ -299,6 +300,7 @@ public class PlayerConnection implements PacketListenerPlayIn, IUpdatePlayerList
 		}, new GenericFutureListener[0]);
 		this.a(chatcomponenttext); // CraftBukkit - fire quit instantly
 		this.networkManager.k();
+		Spigot404Write.clean(this.networkManager.channel);
 		// CraftBukkit - Don't wait
 		this.minecraftServer.postToMainThread(new Runnable() {
 			@Override
@@ -1160,7 +1162,7 @@ public class PlayerConnection implements PacketListenerPlayIn, IUpdatePlayerList
 
 	}
 
-	public void sendPacket(final Packet packet) {
+	public void sendPacketProjectile(final Packet<?> packet) {
 		if (packet instanceof PacketPlayOutChat) {
 			PacketPlayOutChat packetplayoutchat = (PacketPlayOutChat) packet;
 			EntityHuman.EnumChatVisibility flags = this.player.getChatFlags();
@@ -1194,7 +1196,60 @@ public class PlayerConnection implements PacketListenerPlayIn, IUpdatePlayerList
 					e.printStackTrace();
 				}
 			}
-			this.networkManager.handle(packet);
+			this.networkManager.a(packet);
+		} catch (Throwable throwable) {
+			CrashReport crashreport = CrashReport.a(throwable, "Sending packet");
+			CrashReportSystemDetails crashreportsystemdetails = crashreport.a("Packet being sent");
+
+			crashreportsystemdetails.a("Packet class", new Callable() {
+				public String a() throws Exception {
+					return packet.getClass().getCanonicalName();
+				}
+
+				@Override
+				public Object call() throws Exception {
+					return this.a();
+				}
+			});
+			throw new ReportedException(crashreport);
+		}
+	}
+
+	public void sendPacket(final Packet<?> packet) {
+		if (packet instanceof PacketPlayOutChat) {
+			PacketPlayOutChat packetplayoutchat = (PacketPlayOutChat) packet;
+			EntityHuman.EnumChatVisibility flags = this.player.getChatFlags();
+
+			if (flags == EntityHuman.EnumChatVisibility.HIDDEN) {
+				return;
+			}
+
+			if (flags == EntityHuman.EnumChatVisibility.SYSTEM && !packetplayoutchat.b()) {
+				return;
+			}
+		}
+
+		// CraftBukkit start
+		if (packet == null || this.processedDisconnect) { // Spigot
+			return;
+		} else if (packet instanceof PacketPlayOutSpawnPosition) {
+			PacketPlayOutSpawnPosition packet6 = (PacketPlayOutSpawnPosition) packet;
+			this.player.compassTarget = new Location(this.getPlayer().getWorld(), packet6.position.getX(),
+					packet6.position.getY(), packet6.position.getZ());
+		}
+		// CraftBukkit end
+
+		try {
+			for (me.ympax.neverlessspigot.handler.PacketHandler packetListener : NeverLessSpigot.getInstance().getPacketListeners()) {
+				try {
+					if (!packetListener.onSentPacket(this, packet)) {
+						return;
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+			this.networkManager.handleSend(packet);
 		} catch (Throwable throwable) {
 			CrashReport crashreport = CrashReport.a(throwable, "Sending packet");
 			CrashReportSystemDetails crashreportsystemdetails = crashreport.a("Packet being sent");

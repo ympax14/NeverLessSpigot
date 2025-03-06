@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 
 public class SpawnMobCommand extends Command {
 	public SpawnMobCommand() {
-		super("/spawnmob");
+		super("spawnmob");
 		this.description = "Spawn mobs";
 		this.usageMessage = "/spawnmob <mob name> [amount]";
 		setPermission("neverlessspigot.spawnmob");

@@ -23,7 +23,7 @@ public abstract class AsyncOutPacketThread {
 	private long TICK_TIME;
 	private long MAX_CATCHUP_BUFFER;
     private Thread thread;
-    protected Queue<Runnable> packets = new ConcurrentLinkedQueue<Runnable>();
+    protected Queue<Runnable> tasks = new ConcurrentLinkedQueue<Runnable>();
 
 	private long lastTickTime = 0;
     private int currentTick = 0;
@@ -134,13 +134,17 @@ public abstract class AsyncOutPacketThread {
 
     // Queue a packet
     public void addPacket(final Packet<?>  packet, final NetworkManager manager, final GenericFutureListener<? extends Future<? super Void>>[] agenericfuturelistener) {
-        this.packets.add(new Runnable() {
+        this.tasks.add(new Runnable() {
             @Override
             public void run() {
                 Spigot404Write.writeThenFlush(manager.channel, packet, agenericfuturelistener);
             }
         });
     }
+
+	public void addTask(Runnable runnable) {
+		this.tasks.add(runnable);
+	}
 
     public Thread getThread() {
         return this.thread;

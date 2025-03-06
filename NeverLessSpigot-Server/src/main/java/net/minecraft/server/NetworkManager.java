@@ -21,6 +21,7 @@ import com.velocitypowered.natives.compression.VelocityCompressor; // Paper
 import com.velocitypowered.natives.util.Natives; // Paper
 
 import me.ympax.neverlessspigot.NeverLessSpigot;
+import me.ympax.neverlessspigot.async.netty.Spigot404Write;
 import me.ympax.neverlessspigot.config.NeverLessSpigotConfig;
 import me.ympax.neverlessspigot.exception.ExploitException;
 import io.netty.channel.Channel;
@@ -42,7 +43,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 import me.elier.minecraft.util.CryptException;
 
 public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
-
+	private static int lastChannelId = 0;
 	private static final Logger LOGGER = LogManager.getLogger();
 	public static final Marker ROOT_MARKER = MarkerManager.getMarker("NETWORK");
 	public static final Marker PACKET_MARKER = MarkerManager.getMarker("NETWORK_PACKETS", NetworkManager.ROOT_MARKER);
@@ -73,6 +74,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 	private PacketListener m;
 	private IChatBaseComponent n;
 	private boolean o;
+	public int channelid;
 	
 	// NeverLessSpigot - async kb 
 	private boolean shouldCheckPacket = false;
@@ -123,6 +125,8 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 
 	public NetworkManager(EnumProtocolDirection enumprotocoldirection) {
 		this.h = enumprotocoldirection;
+		this.channelid = lastChannelId;
+		lastChannelId++;
 	}
 
 	@Override
@@ -200,10 +204,8 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 				}
 			}
 			try {
-
 				packet.a(this.m);// packet.handle(PlayerConnection)
 			} catch (CancelledPacketHandleException cancelledpackethandleexception) {
-				;
 			}
 		}
 	}
@@ -215,7 +217,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 	}
 	
 	// sendPacket
-	public void handle(Packet<?> packet) {
+	/*public void handle(Packet<?> packet) {
 		if (this.isConnected()) {
 			this.sendPacketQueue();
 			// NeverLessSpigot start - async kb
@@ -228,7 +230,7 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 				}
 			} else {   
 				// Check if the packet is a knockback packet
-		        if ((NeverLessSpigotConfig.asyncCombat || NeverLessSpigotConfig.ticklessCombat) && ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER)) || packet instanceof PacketPlayOutPosition || packet instanceof PacketPlayInFlying.PacketPlayInPosition || packet instanceof PacketPlayInFlying)) {
+		        if ((NeverLessSpigotConfig.asyncCombat || NeverLessSpigotConfig.ticklessCombat) && ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER)))) {
 		        	// Send it with high priority
 		        	NeverLessSpigot.getInstance().getKnockbackThread().addPacket(packet, this, null);
 					if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getKnockbackThread().run();
@@ -247,10 +249,65 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 			}
 		}
 
+	}*/
+
+	public void handleSend(Packet<?> packet) {
+		if (this.isConnected()) {
+			this.sendPacketQueue();
+
+			if (!shouldCheckPacket) {
+				// Wait a bit before checking for combat packets to send with priority
+				// The priority packet writer uses the last context executor
+				if (this.packetWrites.get() > 5) {
+					shouldCheckPacket = true;
+				}
+			} else {
+				if (NeverLessSpigotConfig.ticklessCombat) {
+					if ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER))
+							|| packet instanceof PacketPlayOutPosition) {
+							Spigot404Write.writeThenFlush(this.channel, packet, null);
+							return;
+					}
+				} else if (NeverLessSpigotConfig.asyncCombat) {
+					if ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER))
+							|| packet instanceof PacketPlayOutPosition) {
+						NeverLessSpigot.getInstance().getKnockbackThread().addPacket(packet, this, null);
+						return;
+					}
+				}
+			}
+			
+			this.dispatchPacket(packet, null, Boolean.TRUE);
+		} else {
+			this.j.writeLock().lock();
+
+			try {
+				this.i.add(new NetworkManager.QueuedPacket(packet));
+			} finally {
+				this.j.writeLock().unlock();
+			}
+		}
 	}
 
 	// sendPacket
-	public void a(Packet packet, GenericFutureListener<? extends Future<? super Void>> listener,
+	public void a(Packet<?> packet) {
+		if (this.isConnected()) {
+			this.sendPacketQueue();
+			this.dispatchPacket(packet, null, Boolean.TRUE);
+		} else {
+			this.j.writeLock().lock();
+
+			try {
+				this.i.add(new NetworkManager.QueuedPacket(packet));
+			} finally {
+				this.j.writeLock().unlock();
+			}
+		}
+
+	}
+
+	// sendPacket
+	public void a(Packet<?> packet, GenericFutureListener<? extends Future<? super Void>> listener,
 			GenericFutureListener<? extends Future<? super Void>>... listeners) {
 		if (this.isConnected()) {
 			this.sendPacketQueue();

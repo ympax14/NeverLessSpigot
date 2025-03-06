@@ -47,23 +47,22 @@ public class TicksPerSecondCommand extends Command {
 		}
 
 		boolean mobAi = MinecraftServer.getServer().worlds.get(0).nachoSpigotConfig.enableMobAI;
-		
-		sender.sendMessage(ChatColor.DARK_PURPLE.toString() + ChatColor.UNDERLINE + "NeverLessSpigot Performance:");
 
-		sender.sendMessage(ChatColor.DARK_PURPLE + "\n├ Server (Global)");
-		sender.sendMessage(ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + org.apache.commons.lang.StringUtils.join(tpsAvg, ", "));
-		sender.sendMessage(ChatColor.DARK_PURPLE + "├─ Current Memory Usage: " + ChatColor.LIGHT_PURPLE
+		String message = ChatColor.DARK_PURPLE.toString() + ChatColor.UNDERLINE + "NeverLessSpigot Performance:\n\n";
+			message += ChatColor.DARK_PURPLE + "├ Server (Global)\n";
+		message += ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + org.apache.commons.lang.StringUtils.join(tpsAvg, ", ") + "\n";
+		message += ChatColor.DARK_PURPLE + "├─ Current Memory Usage: " + ChatColor.LIGHT_PURPLE
 				+ ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024)) + "/"
 				+ (Runtime.getRuntime().totalMemory() / (1024 * 1024)) + " mb (Max: "
-				+ (Runtime.getRuntime().maxMemory() / (1024 * 1024)) + " mb)");
-		sender.sendMessage(ChatColor.DARK_PURPLE + "├─ Online Players: " + ChatColor.LIGHT_PURPLE + Bukkit.getOnlinePlayers().size());
-		sender.sendMessage(ChatColor.DARK_PURPLE + "├─ Entity Count: " + ChatColor.LIGHT_PURPLE + entityCount);
-		sender.sendMessage(ChatColor.DARK_PURPLE + "├─ Tile Entity Count: " + ChatColor.LIGHT_PURPLE + tileEntityCount);
-		sender.sendMessage(ChatColor.DARK_PURPLE + "├─ Mob AI: " + (mobAi ? ChatColor.GREEN : ChatColor.RED) + mobAi);
-		sender.sendMessage(ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(MinecraftServer.getServer().getLastMspt() * 100.0) / 100.0);
+				+ (Runtime.getRuntime().maxMemory() / (1024 * 1024)) + " mb)\n";
+		message += ChatColor.DARK_PURPLE + "├─ Online Players: " + ChatColor.LIGHT_PURPLE + Bukkit.getOnlinePlayers().size() + "\n";
+		message += ChatColor.DARK_PURPLE + "├─ Entity Count: " + ChatColor.LIGHT_PURPLE + entityCount + "\n";
+		message += ChatColor.DARK_PURPLE + "├─ Tile Entity Count: " + ChatColor.LIGHT_PURPLE + tileEntityCount + "\n";
+		message += ChatColor.DARK_PURPLE + "├─ Mob AI: " + (mobAi ? ChatColor.GREEN : ChatColor.RED) + mobAi + "\n";
+		message += ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(MinecraftServer.getServer().getLastMspt() * 100.0) / 100.0;
 
 		if (NeverLessSpigot.getInstance().getKnockbackThread() != null && NeverLessSpigot.getInstance().getKnockbackThread().isRunning()) {
-			sender.sendMessage(ChatColor.DARK_PURPLE + "\n├ Knockback Thread");
+			message += ChatColor.DARK_PURPLE + "\n\n├ Knockback Thread\n";
 			String tpsResult = "";
 
 			if (NeverLessSpigotConfig.ticklessCombat == true) {
@@ -76,9 +75,11 @@ public class TicksPerSecondCommand extends Command {
 				tpsResult = org.apache.commons.lang.StringUtils.join(tpsAvgKb, ", ");
 			}
 			
-			sender.sendMessage(ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + tpsResult);
-			sender.sendMessage(ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(NeverLessSpigot.getInstance().getKnockbackThread().getLastMspt() * 100.0) / 100.0);
+			message += ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + tpsResult + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(NeverLessSpigot.getInstance().getKnockbackThread().getLastMspt() * 100.0) / 100.0;
 		}
+
+		sender.sendMessage(message);
 
 		/*sender.sendMessage(ChatColor.DARK_PURPLE + "├ Server TPS from last 1m, 5m, 15m: " + org.apache.commons.lang.StringUtils.join(tpsAvg, ", "));
 		
