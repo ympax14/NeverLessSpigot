@@ -90,6 +90,9 @@ public class NeverLessSpigot {
 		TicklessCombatCommand ticklessCombatCommand = new TicklessCombatCommand();
 		commandMap.register(ticklessCombatCommand.getName(), "ns", ticklessCombatCommand);
 
+		AsyncTicklessCommand asyncTicklessCommand = new AsyncTicklessCommand();
+		commandMap.register(asyncTicklessCommand.getName(), "ns", asyncTicklessCommand);
+
 		CombatTPSCommand combatTPSCommand = new CombatTPSCommand();
 		commandMap.register(combatTPSCommand.getName(), "ns", combatTPSCommand);
 

@@ -33,11 +33,11 @@ public class AsyncCombatCommand extends Command {
         NeverLessSpigotConfig.asyncCombat = asyncCombat;
 		NeverLessSpigotConfig.set("settings.async.combat", asyncCombat);
 
-        if (asyncCombat && (NeverLessSpigot.getInstance().getKnockbackThread() == null || NeverLessSpigot.getInstance().getKnockbackThread().isRunning() == false) && (NeverLessSpigot.getInstance().getHitDetectionThread() == null || NeverLessSpigot.getInstance().getHitDetectionThread().isRunning() == false)) {
+        if ((asyncCombat || (NeverLessSpigotConfig.ticklessCombat && NeverLessSpigotConfig.asyncTickless)) && (NeverLessSpigot.getInstance().getKnockbackThread() == null || !NeverLessSpigot.getInstance().getKnockbackThread().isRunning()) && (NeverLessSpigot.getInstance().getHitDetectionThread() == null || !NeverLessSpigot.getInstance().getHitDetectionThread().isRunning())) {
             NeverLessSpigot.getInstance().startAsyncThreads();
         } else if (!asyncCombat && !NeverLessSpigotConfig.ticklessCombat) {
             NeverLessSpigot.getInstance().getKnockbackThread().stop();
-			NeverLessSpigot.getInstance().getKnockbackThread().stop();
+			NeverLessSpigot.getInstance().getHitDetectionThread().stop();
         }
 
 		sender.sendMessage((asyncCombat ? ChatColor.GREEN : ChatColor.RED) + "Async Combat is now " + status + ".");

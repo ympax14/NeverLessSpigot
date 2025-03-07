@@ -58,8 +58,8 @@ public class NeverLessSpigotConfig {
 
 		try {
 			config.save(CONFIG_FILE);
-			loadComments();
-			c.saveComments(CONFIG_FILE);
+			//loadComments();
+			//c.saveComments(CONFIG_FILE);
 		} catch (Exception ex) {
 			LOGGER.log(Level.ERROR, "Could not save " + CONFIG_FILE, ex);
 			
@@ -123,6 +123,7 @@ public class NeverLessSpigotConfig {
         c.addComment("settings.async.combat-thread-tps", "Combat thread TPS for async knockback.");
         c.addComment("settings.async.combat", "Enables asynchronous combat. This increases overall cpu usage, but sends knockback/hitdetection packets faster. Disable this if you do not run a pvp server. \nThis may be incompatible with a few plugins that listen to knockback packets. Test before using in production.");
 		c.addComment("settings.tickless.combat", "Enables tickless combat. This increases overall cpu usage, but sends knockback/hitdetection packets instantly. Disable this if you do not run a pvp server. \nThis may be incompatible with a few plugins that listen to knockback packets. Test before using in production.");
+		c.addComment("settings.tickless.async", "Enables async for tickless. This increases overall cpu usage, and might slow down Main Thread.");
 		c.addComment("settings.command.ping.enable", "Enables the command \"/ping <player>\" which shows player ping. Users require the permission neverlessspigot.command.ping");
 		c.addComment("settings.command.ping.self-ping-msg", "The message displayed for the /ping command");
 		c.addComment("settings.command.ping.other-ping-msg", "The message displayed for the /ping <player> command");
@@ -132,6 +133,7 @@ public class NeverLessSpigotConfig {
 		c.addComment("settings.show-player-ips", "Disabling this will prevent display of player ips in the console.");
 		c.addComment("settings.modern-keep-alive", "This enables keep alive handling from modern Minecraft. This may break some plugins.");
 		c.addComment("settings.async.path-searches.enabled", "Enables async path searching for entities.");
+		
 		c.addComment("settings.async.path-searches.entities", "A list of entities that utilize async path searches. Removing entities from this list will ensure 100% vanilla behavior, but worse performance.");
 		c.addComment("settings.async.path-searches.distance-to-async", "The mininum distance an entity is targeting to handle it async. Tune this based on how many entities your server will has.");
 		c.addComment("settings.async.path-searches.threads", "The threads used for path searches. Tune this based on how many entities your server will has.");
@@ -316,16 +318,22 @@ public class NeverLessSpigotConfig {
     }
 
     // public static boolean asyncHitDetection;
-    public static boolean asyncCombat;
+    public static volatile boolean asyncCombat;
 
     private static void asyncCombat() {
         asyncCombat = getBoolean("settings.async.combat", true);
     }
 
-	public static boolean ticklessCombat;
+	public static volatile boolean ticklessCombat;
 
     private static void ticklessCombat() {
         ticklessCombat = getBoolean("settings.tickless.combat", true);
+    }
+
+	public static volatile boolean asyncTickless;
+
+    private static void asyncTickless() {
+        asyncTickless = getBoolean("settings.tickless.async", true);
     }
     
 	public static boolean pingCmd;
@@ -335,8 +343,8 @@ public class NeverLessSpigotConfig {
 	private static void pingCmd() {
 		pingCmd = getBoolean("settings.command.ping.enable", true);
 		
-		pingSelfCmdString = getString("settings.command.ping.self-ping-msg", "&bYour ping: &3%ping%");
-		pingOtherCmdString = getString("settings.command.ping.other-ping-msg", "&3%player%'s &bping: &3%ping%");
+		pingSelfCmdString = getString("settings.command.ping.self-ping-msg", "&5Your ping: &d%ping%");
+		pingOtherCmdString = getString("settings.command.ping.other-ping-msg", "&5%player%'s ping: &d%ping%");
 	}
 	
 	public static boolean statistics;

@@ -33,7 +33,6 @@ public class PingCommand extends Command {
 			
 			// Otherwise send the ping of the argument player if valid
 		} else if (args.length == 1) {
-			
 			Player pingPlayer = Bukkit.getPlayer(args[0]);
 			if (pingPlayer != null && Bukkit.getOnlinePlayers().contains(pingPlayer)) {
 				String finalString = ChatColor.translateAlternateColorCodes('&', NeverLessSpigotConfig.pingOtherCmdString)

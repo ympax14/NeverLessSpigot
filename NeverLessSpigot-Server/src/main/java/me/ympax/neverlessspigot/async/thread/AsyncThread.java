@@ -13,12 +13,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.bukkit.Bukkit;
 
 import me.ympax.neverlessspigot.async.netty.Spigot404Write;
+import me.ympax.neverlessspigot.config.NeverLessSpigotConfig;
 import net.minecraft.server.NetworkManager;
 import net.minecraft.server.Packet;
 
-public abstract class AsyncOutPacketThread {
-    private boolean running = true;
+public abstract class AsyncThread {
 	private static final long SEC_IN_NANO = 1000000000;
+
+    private volatile boolean running = true;
 	private int TPS;
 	private long TICK_TIME;
 	private long MAX_CATCHUP_BUFFER;
@@ -31,18 +33,18 @@ public abstract class AsyncOutPacketThread {
     private final RollingAverage tps5 = new RollingAverage(60 * 5);
     private final RollingAverage tps15 = new RollingAverage(60 * 15);
 
-    public AsyncOutPacketThread(String s, int tps) {
+    public AsyncThread(String s, int tps) {
 		TPS = tps;
 		TICK_TIME = SEC_IN_NANO / TPS;
 		MAX_CATCHUP_BUFFER = TICK_TIME * TPS * 60L;
 
         this.thread = new Thread(new Runnable() {
-
             @Override
             public void run() {
-            	AsyncOutPacketThread.this.loop();
+            	AsyncThread.this.loop();
             }
         }, s);
+		this.thread.setDaemon(true);
         this.thread.start();
 		Bukkit.getLogger().info("[" + s + "] Started !");
     }
@@ -67,56 +69,66 @@ public abstract class AsyncOutPacketThread {
 
     // Loops scanning for new packets to send
 	public void loop() {
-
 		long lastTick = System.nanoTime();
 		long catchupTime = 0L;
 
 		while (this.running) {
-			long curTime = System.nanoTime();
-			long wait = TICK_TIME - (curTime - lastTick);
-
-			if (wait > 0) {
-				if (catchupTime < 2E6) {
-					wait += Math.abs(catchupTime);
-				} else if (wait < catchupTime) {
-					//catchupTime -= wait;
-					wait = 0;
-				} else {
-					wait -= catchupTime;
-					//catchupTime = 0;
+			if (!NeverLessSpigotConfig.ticklessCombat) {
+				long curTime = System.nanoTime();
+				long wait = TICK_TIME - (curTime - lastTick);
+	
+				if (wait > 0) {
+					if (catchupTime < 2E6) {
+						wait += Math.abs(catchupTime);
+					} else if (wait < catchupTime) {
+						//catchupTime -= wait;
+						wait = 0;
+					} else {
+						wait -= catchupTime;
+						//catchupTime = 0;
+					}
+	
+					try {
+						// Wait a bit before checking for new packets
+						Thread.sleep(wait / 1000000);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					//curTime = System.nanoTime();
+					catchupTime = 0L;
+					continue;
 				}
-
+	
+				catchupTime = Math.min(MAX_CATCHUP_BUFFER, catchupTime - wait);
+	
+				// Handle packets
+	
+				long beforeTick = System.currentTimeMillis();
+				this.run();
+				lastTickTime = System.currentTimeMillis() - beforeTick;
+	
+				if (++this.currentTick % TPS == 0 ) {
+					final long diff = curTime - lastTick;
+	
+					BigDecimal TPS_BASE = new BigDecimal(1E9);
+					BigDecimal currentTps = TPS_BASE.divide(new BigDecimal(diff * TPS), 30, java.math.RoundingMode.HALF_UP).multiply(new BigDecimal(TPS));
+	
+					tps1.add(currentTps, diff);
+					tps5.add(currentTps, diff);
+					tps15.add(currentTps, diff);
+				}
+	
+				lastTick = curTime;
+			} else {
+				long beforeTick = System.currentTimeMillis();
+				this.run();
+				lastTickTime = System.currentTimeMillis() - beforeTick;
 				try {
-					// Wait a bit before checking for new packets
-					Thread.sleep(wait / 1000000);
+					Thread.sleep(1L);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
-				//curTime = System.nanoTime();
-				catchupTime = 0L;
-				continue;
 			}
-
-			catchupTime = Math.min(MAX_CATCHUP_BUFFER, catchupTime - wait);
-
-			// Handle packets
-
-			long beforeTick = System.currentTimeMillis();
-			this.run();
-			lastTickTime = System.currentTimeMillis() - beforeTick;
-
-            if (++this.currentTick % TPS == 0 ) {
-                final long diff = curTime - lastTick;
-
-                BigDecimal TPS_BASE = new BigDecimal(1E9);
-                BigDecimal currentTps = TPS_BASE.divide(new BigDecimal(diff * TPS), 30, java.math.RoundingMode.HALF_UP).multiply(new BigDecimal(TPS));
-
-                tps1.add(currentTps, diff);
-                tps5.add(currentTps, diff);
-                tps15.add(currentTps, diff);
-            }
-
-			lastTick = curTime;
 		}
 
         Bukkit.getLogger().info("[" + this.thread.getName() + "] Stopped !");
@@ -134,7 +146,7 @@ public abstract class AsyncOutPacketThread {
 
     // Queue a packet
     public void addPacket(final Packet<?>  packet, final NetworkManager manager, final GenericFutureListener<? extends Future<? super Void>>[] agenericfuturelistener) {
-        this.tasks.add(new Runnable() {
+		this.tasks.add(new Runnable() {
             @Override
             public void run() {
                 Spigot404Write.writeThenFlush(manager.channel, packet, agenericfuturelistener);

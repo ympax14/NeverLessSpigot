@@ -10,7 +10,7 @@ import me.ympax.neverlessspigot.config.NeverLessSpigotConfig;
 public class CombatTPSCommand extends Command {
     public CombatTPSCommand() {
         super("combattps");
-        this.usageMessage = "/combattps [tps]";
+        this.usageMessage = ChatColor.RED.toString() + "Please use /combattps <tps>";
         this.setPermission("neverlessspigot.combattps");
     }
 

@@ -1281,6 +1281,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 					MinecraftServer.getServer().postToMainThread(() -> EntityPlayer.this.applyAsyncAttack(entity, damage, enchantDamage, fireAspectLevel, vX, vY, vZ));
 				}
         	});
+			if (!NeverLessSpigotConfig.asyncTickless) NeverLessSpigot.getInstance().getHitDetectionThread().run();
     	}
 	}
 
@@ -1322,7 +1323,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 		} else {
 			if (NeverLessSpigotConfig.ticklessCombat || NeverLessSpigotConfig.asyncCombat) {
 				attackAsync(entity);
-				if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getHitDetectionThread().run();
+				//if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getHitDetectionThread().run();
 			} else {
 				super.attack(entity);	
 			}

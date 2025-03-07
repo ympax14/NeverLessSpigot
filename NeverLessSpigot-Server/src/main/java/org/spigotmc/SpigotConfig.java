@@ -281,7 +281,7 @@ public class SpigotConfig {
 	}
 
 	private static void tpsCommand() {
-		commands.put("tps", new TicksPerSecondCommand("tps"));
+		commands.put("tps", new TicksPerSecondCommand());
 	}
 
 	public static int playerSample;

@@ -12,10 +12,10 @@ import net.minecraft.server.WorldServer;
 
 public class TicksPerSecondCommand extends Command {
 
-	public TicksPerSecondCommand(String name) {
-		super(name);
+	public TicksPerSecondCommand() {
+		super("tps");
 		this.description = "Gets the current ticks per second for the server";
-		this.usageMessage = "/tps";
+		this.usageMessage = ChatColor.RED.toString() + "/tps";
 		this.setPermission("bukkit.command.tps");
 	}
 
@@ -30,10 +30,8 @@ public class TicksPerSecondCommand extends Command {
 		String[] tpsAvg = new String[tps.length];
 
 		for (int i = 0; i < tps.length; i++) tpsAvg[i] = format(tps[i]);
-		
-		
+	
 		// NeverLessSpigot - more detailed tps cmd
-		
 		int entityCount = 0;
 		
 		for (WorldServer world : MinecraftServer.getServer().worlds) {
@@ -48,21 +46,25 @@ public class TicksPerSecondCommand extends Command {
 
 		boolean mobAi = MinecraftServer.getServer().worlds.get(0).nachoSpigotConfig.enableMobAI;
 
-		String message = ChatColor.DARK_PURPLE.toString() + ChatColor.UNDERLINE + "NeverLessSpigot Performance:\n\n";
-			message += ChatColor.DARK_PURPLE + "├ Server (Global)\n";
-		message += ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + org.apache.commons.lang.StringUtils.join(tpsAvg, ", ") + "\n";
-		message += ChatColor.DARK_PURPLE + "├─ Current Memory Usage: " + ChatColor.LIGHT_PURPLE
+		String message = ChatColor.DARK_PURPLE.toString() + "NeverLessSpigot Performance:\n";
+			message += ChatColor.DARK_PURPLE + "├ " + ChatColor.GOLD + "Server (Global)\n";
+			message += ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + org.apache.commons.lang.StringUtils.join(tpsAvg, ", ") + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Current Memory Usage: " + ChatColor.LIGHT_PURPLE
 				+ ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024)) + "/"
 				+ (Runtime.getRuntime().totalMemory() / (1024 * 1024)) + " mb (Max: "
 				+ (Runtime.getRuntime().maxMemory() / (1024 * 1024)) + " mb)\n";
-		message += ChatColor.DARK_PURPLE + "├─ Online Players: " + ChatColor.LIGHT_PURPLE + Bukkit.getOnlinePlayers().size() + "\n";
-		message += ChatColor.DARK_PURPLE + "├─ Entity Count: " + ChatColor.LIGHT_PURPLE + entityCount + "\n";
-		message += ChatColor.DARK_PURPLE + "├─ Tile Entity Count: " + ChatColor.LIGHT_PURPLE + tileEntityCount + "\n";
-		message += ChatColor.DARK_PURPLE + "├─ Mob AI: " + (mobAi ? ChatColor.GREEN : ChatColor.RED) + mobAi + "\n";
-		message += ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(MinecraftServer.getServer().getLastMspt() * 100.0) / 100.0;
+			message += ChatColor.DARK_PURPLE + "├─ Online Players: " + ChatColor.LIGHT_PURPLE + Bukkit.getOnlinePlayers().size() + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Entity Count: " + ChatColor.LIGHT_PURPLE + entityCount + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Tile Entity Count: " + ChatColor.LIGHT_PURPLE + tileEntityCount + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Mob AI: " + (mobAi ? ChatColor.GREEN : ChatColor.RED) + mobAi + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(MinecraftServer.getServer().getLastMspt() * 100.0) / 100.0 + "\n";
+			message += ChatColor.DARK_PURPLE + "├ " + ChatColor.GOLD + "Asynchrone/Tickless \n";
+			message += ChatColor.DARK_PURPLE + "├─ Async Combat: " + (NeverLessSpigotConfig.asyncCombat ? ChatColor.GREEN : ChatColor.RED) + NeverLessSpigotConfig.asyncCombat + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Tickless Combat: " + (NeverLessSpigotConfig.ticklessCombat ? ChatColor.GREEN : ChatColor.RED) + NeverLessSpigotConfig.ticklessCombat + "\n";
+			message += ChatColor.DARK_PURPLE + "├─ Async Tickless: " + (NeverLessSpigotConfig.asyncTickless ? ChatColor.GREEN : ChatColor.RED) + NeverLessSpigotConfig.asyncTickless;
 
 		if (NeverLessSpigot.getInstance().getKnockbackThread() != null && NeverLessSpigot.getInstance().getKnockbackThread().isRunning()) {
-			message += ChatColor.DARK_PURPLE.toString() + ChatColor.UNDERLINE + "\n├ Knockback Thread\n";
+			message += ChatColor.DARK_PURPLE + "\n├ " + ChatColor.GOLD + "Knockback Thread\n";
 			String tpsResult = "";
 
 			if (NeverLessSpigotConfig.ticklessCombat == true) {
@@ -80,17 +82,17 @@ public class TicksPerSecondCommand extends Command {
 		}
 
 		if (NeverLessSpigot.getInstance().getHitDetectionThread() != null && NeverLessSpigot.getInstance().getHitDetectionThread().isRunning()) {
-			message += ChatColor.DARK_PURPLE.toString() + ChatColor.UNDERLINE + "\n├ HitDetection Thread\n";
+			message += ChatColor.DARK_PURPLE + "\n├ " + ChatColor.GOLD + "HitDetection Thread\n";
 			String tpsResult = "";
 
 			if (NeverLessSpigotConfig.ticklessCombat == true) {
 				tpsResult = "Tickless";
 			} else {
 
-				double[] kbTps = NeverLessSpigot.getInstance().getHitDetectionThread().getTPS();
-				String[] tpsAvgKb = new String[kbTps.length];
+				double[] hitDetectTps = NeverLessSpigot.getInstance().getHitDetectionThread().getTPS();
+				String[] tpsAvgHitDetectTps = new String[hitDetectTps.length];
 
-				tpsResult = org.apache.commons.lang.StringUtils.join(tpsAvgKb, ", ");
+				tpsResult = org.apache.commons.lang.StringUtils.join(tpsAvgHitDetectTps, ", ");
 			}
 			
 			message += ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + tpsResult + "\n";
