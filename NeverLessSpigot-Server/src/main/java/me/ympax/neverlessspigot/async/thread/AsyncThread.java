@@ -9,6 +9,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 import java.math.BigDecimal;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.LockSupport;
 
 import org.bukkit.Bukkit;
 
@@ -33,10 +34,13 @@ public abstract class AsyncThread {
     private final RollingAverage tps5 = new RollingAverage(60 * 5);
     private final RollingAverage tps15 = new RollingAverage(60 * 15);
 
+	private long lastPacketOrTaskTime;
+
     public AsyncThread(String s, int tps) {
 		TPS = tps;
 		TICK_TIME = SEC_IN_NANO / TPS;
 		MAX_CATCHUP_BUFFER = TICK_TIME * TPS * 60L;
+		lastPacketOrTaskTime = System.nanoTime();
 
         this.thread = new Thread(new Runnable() {
             @Override
@@ -61,6 +65,7 @@ public abstract class AsyncThread {
 
     public void stop() {
         this.running = false;
+		LockSupport.unpark(thread);
     }
 
     public boolean isRunning() {
@@ -119,15 +124,15 @@ public abstract class AsyncThread {
 				}
 	
 				lastTick = curTime;
+
+				if (System.nanoTime() - lastPacketOrTaskTime > 60 * SEC_IN_NANO) {
+                    LockSupport.park(); // Met en veille au bout de 60 secondes d'inactivé
+                }
 			} else {
+				LockSupport.park();
 				long beforeTick = System.currentTimeMillis();
 				this.run();
 				lastTickTime = System.currentTimeMillis() - beforeTick;
-				try {
-					Thread.sleep(1L);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
 			}
 		}
 
@@ -146,16 +151,20 @@ public abstract class AsyncThread {
 
     // Queue a packet
     public void addPacket(final Packet<?>  packet, final NetworkManager manager, final GenericFutureListener<? extends Future<? super Void>>[] agenericfuturelistener) {
+		lastPacketOrTaskTime = System.nanoTime();
 		this.tasks.add(new Runnable() {
             @Override
             public void run() {
                 Spigot404Write.writeThenFlush(manager.channel, packet, agenericfuturelistener);
             }
         });
+		LockSupport.unpark(thread);
     }
 
 	public void addTask(Runnable runnable) {
+		lastPacketOrTaskTime = System.nanoTime();
 		this.tasks.add(runnable);
+		LockSupport.unpark(thread);
 	}
 
     public Thread getThread() {
