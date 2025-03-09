@@ -36,6 +36,7 @@ public class NeverLessSpigot {
 	
 	private CombatThread knockbackThread;
 	private CombatThread hitDetectionThread;
+	private CombatThread playerPositionThread;
 	
 	private final Executor statisticsExecutor = Executors
 			.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("NeverLessSpigot Statistics Thread")
@@ -148,8 +149,18 @@ public class NeverLessSpigot {
 			}
 		}
 
+		if (playerPositionThread != null && playerPositionThread.isRunning()) {
+			try {        
+				playerPositionThread.stop();     
+				playerPositionThread.getThread().join(); 
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
 		knockbackThread = new CombatThread("Knockback Thread");
 		hitDetectionThread = new CombatThread("HitDetection Thread");
+		playerPositionThread = new CombatThread("PlayerPosition Thread");
 	}
 
 	private void init() {
@@ -183,6 +194,10 @@ public class NeverLessSpigot {
 	
 	public CombatThread getKnockbackThread() {
 		return knockbackThread;
+	}
+
+	public CombatThread getPlayerPositionThread() {
+		return playerPositionThread;
 	}
 	
     public LagCompensator getLagCompensator() {

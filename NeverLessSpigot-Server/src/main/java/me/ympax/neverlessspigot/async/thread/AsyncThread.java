@@ -40,7 +40,7 @@ public abstract class AsyncThread {
 
 	private long lastPacketOrTaskTime;
 
-	private ExecutorService executor = new ThreadPoolExecutor(4, 10, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(10));
+	private ExecutorService executor = new ThreadPoolExecutor(4, 10, 30L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
 
 	private boolean isParked = false;
 
