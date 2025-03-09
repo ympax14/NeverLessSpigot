@@ -10,7 +10,9 @@ import java.math.BigDecimal;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 import org.bukkit.Bukkit;
@@ -38,7 +40,7 @@ public abstract class AsyncThread {
 
 	private long lastPacketOrTaskTime;
 
-	private ExecutorService executor = Executors.newFixedThreadPool(4);
+	private ExecutorService executor = new ThreadPoolExecutor(4, 10, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(10));
 
 	private boolean isParked = false;
 
