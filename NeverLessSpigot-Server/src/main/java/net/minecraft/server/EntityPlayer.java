@@ -1208,9 +1208,9 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 
 	public void attackAsync(Entity entity) {
     	if (entity.aD() && !entity.l(this)) {
-        	NeverLessSpigot.getInstance().getHitDetectionThread().addTask(new Runnable() {
+        	/*NeverLessSpigot.getInstance().getHitDetectionThread().addTask(new Runnable() {
 				@Override
-				public void run() {
+				public void run() {*/
 					if (MinecraftServer.currentTick - entity.lastProjectileHitTick <= 10) {
 						return;
 					}
@@ -1279,9 +1279,9 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 					final double vZ = velZ;
 	
 					MinecraftServer.getServer().postToMainThread(() -> EntityPlayer.this.applyAsyncAttack(entity, damage, enchantDamage, fireAspectLevel, vX, vY, vZ));
-				}
-        	});
-			if (!NeverLessSpigotConfig.asyncTickless) NeverLessSpigot.getInstance().getHitDetectionThread().run();
+				/*}
+        	});*/
+			//if (!NeverLessSpigotConfig.asyncTickless) NeverLessSpigot.getInstance().getHitDetectionThread().run();
     	}
 	}
 
@@ -1321,9 +1321,10 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 		if (this.playerInteractManager.getGameMode() == WorldSettings.EnumGamemode.SPECTATOR) {
 			this.setSpectatorTarget(entity);
 		} else {
-			if (NeverLessSpigotConfig.ticklessCombat || NeverLessSpigotConfig.asyncCombat) {
-				attackAsync(entity);
-				//if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getHitDetectionThread().run();
+			if (NeverLessSpigotConfig.ticklessCombat) {
+				NeverLessSpigot.getInstance().getHitDetectionThread().getExecutorService().submit(() -> attackAsync(entity));
+			} else if (NeverLessSpigotConfig.asyncCombat) {
+				NeverLessSpigot.getInstance().getHitDetectionThread().addTask(() -> attackAsync(entity));
 			} else {
 				super.attack(entity);	
 			}

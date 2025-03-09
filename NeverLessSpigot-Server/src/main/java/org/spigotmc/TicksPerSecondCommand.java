@@ -1,5 +1,8 @@
 package org.spigotmc;
 
+import java.lang.management.ManagementFactory;
+import com.sun.management.OperatingSystemMXBean;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -11,7 +14,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.WorldServer;
 
 public class TicksPerSecondCommand extends Command {
-
 	public TicksPerSecondCommand() {
 		super("tps");
 		this.description = "Gets the current ticks per second for the server";
@@ -47,21 +49,33 @@ public class TicksPerSecondCommand extends Command {
 		boolean mobAi = MinecraftServer.getServer().worlds.get(0).nachoSpigotConfig.enableMobAI;
 
 		String message = ChatColor.DARK_PURPLE.toString() + "NeverLessSpigot Performance:\n";
+			message += ChatColor.DARK_PURPLE + "├ " + ChatColor.GOLD + "System \n";
+
+        OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        
+        double cpuUsage = osBean.getSystemCpuLoad() * 100;
+        	message += ChatColor.DARK_PURPLE + "├─ CPU Usage: " + ChatColor.LIGHT_PURPLE + String.format("%.2f", cpuUsage) + "%\n";
+
+        int availableCores = osBean.getAvailableProcessors();
+        	message += ChatColor.DARK_PURPLE + "├─ Available Cores: " + ChatColor.LIGHT_PURPLE + availableCores + "\n";
+
+			message += ChatColor.DARK_PURPLE + "├─ Current Memory Usage: " + ChatColor.LIGHT_PURPLE
+    			+ ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024)) + "/"
+    			+ (Runtime.getRuntime().totalMemory() / (1024 * 1024)) + " mb (Max: "
+    			+ (Runtime.getRuntime().maxMemory() / (1024 * 1024)) + " mb)\n";
+
 			message += ChatColor.DARK_PURPLE + "├ " + ChatColor.GOLD + "Server (Global)\n";
 			message += ChatColor.DARK_PURPLE + "├─ TPS from last 1m, 5m, 15m: " + org.apache.commons.lang.StringUtils.join(tpsAvg, ", ") + "\n";
-			message += ChatColor.DARK_PURPLE + "├─ Current Memory Usage: " + ChatColor.LIGHT_PURPLE
-				+ ((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024)) + "/"
-				+ (Runtime.getRuntime().totalMemory() / (1024 * 1024)) + " mb (Max: "
-				+ (Runtime.getRuntime().maxMemory() / (1024 * 1024)) + " mb)\n";
 			message += ChatColor.DARK_PURPLE + "├─ Online Players: " + ChatColor.LIGHT_PURPLE + Bukkit.getOnlinePlayers().size() + "\n";
 			message += ChatColor.DARK_PURPLE + "├─ Entity Count: " + ChatColor.LIGHT_PURPLE + entityCount + "\n";
 			message += ChatColor.DARK_PURPLE + "├─ Tile Entity Count: " + ChatColor.LIGHT_PURPLE + tileEntityCount + "\n";
 			message += ChatColor.DARK_PURPLE + "├─ Mob AI: " + (mobAi ? ChatColor.GREEN : ChatColor.RED) + mobAi + "\n";
 			message += ChatColor.DARK_PURPLE + "├─ Milliseconds to Run Last Tick: " + ChatColor.LIGHT_PURPLE + Math.round(MinecraftServer.getServer().getLastMspt() * 100.0) / 100.0 + "\n";
+
+			// Informations sur les fonctionnalités Asynchrone et Tickless
 			message += ChatColor.DARK_PURPLE + "├ " + ChatColor.GOLD + "Asynchrone/Tickless \n";
 			message += ChatColor.DARK_PURPLE + "├─ Async Combat: " + (NeverLessSpigotConfig.asyncCombat ? ChatColor.GREEN : ChatColor.RED) + NeverLessSpigotConfig.asyncCombat + "\n";
 			message += ChatColor.DARK_PURPLE + "├─ Tickless Combat: " + (NeverLessSpigotConfig.ticklessCombat ? ChatColor.GREEN : ChatColor.RED) + NeverLessSpigotConfig.ticklessCombat + "\n";
-			message += ChatColor.DARK_PURPLE + "├─ Async Tickless: " + (NeverLessSpigotConfig.asyncTickless ? ChatColor.GREEN : ChatColor.RED) + NeverLessSpigotConfig.asyncTickless;
 
 		if (NeverLessSpigot.getInstance().getKnockbackThread() != null && NeverLessSpigot.getInstance().getKnockbackThread().isRunning()) {
 			message += ChatColor.DARK_PURPLE + "\n├ " + ChatColor.GOLD + "Knockback Thread\n";

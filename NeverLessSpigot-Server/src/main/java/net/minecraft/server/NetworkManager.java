@@ -215,41 +215,6 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 //        NetworkManager.g.debug("Set listener of {} to {}", new Object[] { this, packetlistener});
 		this.m = packetlistener;
 	}
-	
-	// sendPacket
-	/*public void handle(Packet<?> packet) {
-		if (this.isConnected()) {
-			this.sendPacketQueue();
-			// NeverLessSpigot start - async kb
-			// based on https://github.com/Argarian-Network/NachoSpigot/tree/async-kb-hit		
-			if (!shouldCheckPacket) {
-				// Wait a bit before checking for combat packets to send with priority
-				// The priority packet writer uses the last context executor
-				if (this.packetWrites.get() > 5) {
-					shouldCheckPacket = true;
-				}
-			} else {   
-				// Check if the packet is a knockback packet
-		        if ((NeverLessSpigotConfig.asyncCombat || NeverLessSpigotConfig.ticklessCombat) && ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER)))) {
-		        	// Send it with high priority
-		        	NeverLessSpigot.getInstance().getKnockbackThread().addPacket(packet, this, null);
-					if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getKnockbackThread().run();
-		            return;
-		        }
-			}
-	        // NeverLessSpigot end
-			this.dispatchPacket(packet, null, Boolean.TRUE);
-		} else {
-			this.j.writeLock().lock();
-
-			try {
-				this.i.add(new NetworkManager.QueuedPacket(packet));
-			} finally {
-				this.j.writeLock().unlock();
-			}
-		}
-
-	}*/
 
 	public void handleSend(Packet<?> packet) {
 		if (this.isConnected()) {
@@ -262,10 +227,15 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 					shouldCheckPacket = true;
 				}
 			} else {
-				if ((NeverLessSpigotConfig.ticklessCombat || NeverLessSpigotConfig.asyncCombat) && (packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER))) {
-					NeverLessSpigot.getInstance().getKnockbackThread().addPacket(packet, this, null);
-					if (!NeverLessSpigotConfig.asyncTickless) NeverLessSpigot.getInstance().getKnockbackThread().run();
-					//if (NeverLessSpigotConfig.ticklessCombat) NeverLessSpigot.getInstance().getKnockbackThread().run();
+				if ((packet instanceof PacketPlayOutEntityVelocity && ((PacketPlayOutEntityVelocity)packet).getEntity().getType().equals(EntityType.PLAYER))) {
+
+					if (NeverLessSpigotConfig.ticklessCombat) {
+						NeverLessSpigot.getInstance().getKnockbackThread().getExecutorService().submit(() -> Spigot404Write.writeThenFlush(NetworkManager.this.channel, packet, null));
+						return;
+					} else if (NeverLessSpigotConfig.asyncCombat) {
+						NeverLessSpigot.getInstance().getKnockbackThread().addPacket(packet, this, null);
+						return;
+					}
 				}
 			}
 			

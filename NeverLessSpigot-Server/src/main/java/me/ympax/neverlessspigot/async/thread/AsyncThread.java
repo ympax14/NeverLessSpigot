@@ -9,6 +9,8 @@ import io.netty.util.concurrent.GenericFutureListener;
 import java.math.BigDecimal;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.locks.LockSupport;
 
 import org.bukkit.Bukkit;
@@ -36,6 +38,10 @@ public abstract class AsyncThread {
 
 	private long lastPacketOrTaskTime;
 
+	private ExecutorService executor = Executors.newFixedThreadPool(4);
+
+	private boolean isParked = false;
+
     public AsyncThread(String s, int tps) {
 		TPS = tps;
 		TICK_TIME = SEC_IN_NANO / TPS;
@@ -52,6 +58,10 @@ public abstract class AsyncThread {
         this.thread.start();
 		Bukkit.getLogger().info("[" + s + "] Started !");
     }
+
+	public ExecutorService getExecutorService() {
+		return this.executor;
+	}
 
 	public long getLastMspt() {
 		return this.lastTickTime;
@@ -125,17 +135,19 @@ public abstract class AsyncThread {
 	
 				lastTick = curTime;
 
-				if (System.nanoTime() - lastPacketOrTaskTime > 60 * SEC_IN_NANO) {
-                    LockSupport.park(); // Met en veille au bout de 60 secondes d'inactivé
+				if (System.nanoTime() - lastPacketOrTaskTime > 60 * SEC_IN_NANO) { // Met en veille au bout de 60 secondes d'inactivé
+					this.isParked = true;
+					Bukkit.getLogger().info("[" + this.thread.getName() + "] Parked !");
+                    LockSupport.park();
                 }
 			} else {
+				this.isParked = true;
+				Bukkit.getLogger().info("[" + this.thread.getName() + "] Parked !");
 				LockSupport.park();
-				long beforeTick = System.currentTimeMillis();
-				this.run();
-				lastTickTime = System.currentTimeMillis() - beforeTick;
 			}
 		}
 
+		executor.shutdown();
         Bukkit.getLogger().info("[" + this.thread.getName() + "] Stopped !");
 	}
 
@@ -158,13 +170,19 @@ public abstract class AsyncThread {
                 Spigot404Write.writeThenFlush(manager.channel, packet, agenericfuturelistener);
             }
         });
-		LockSupport.unpark(thread);
+		if (this.isParked) {
+			LockSupport.unpark(thread);
+			this.isParked = false;
+		}
     }
 
 	public void addTask(Runnable runnable) {
 		lastPacketOrTaskTime = System.nanoTime();
 		this.tasks.add(runnable);
-		LockSupport.unpark(thread);
+		if (this.isParked) {
+			LockSupport.unpark(thread);
+			this.isParked = false;
+		}
 	}
 
     public Thread getThread() {

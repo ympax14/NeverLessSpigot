@@ -329,12 +329,6 @@ public class NeverLessSpigotConfig {
     private static void ticklessCombat() {
         ticklessCombat = getBoolean("settings.tickless.combat", true);
     }
-
-	public static volatile boolean asyncTickless;
-
-    private static void asyncTickless() {
-        asyncTickless = getBoolean("settings.tickless.async", true);
-    }
     
 	public static boolean pingCmd;
 	public static String pingSelfCmdString;
