@@ -11,6 +11,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
@@ -40,7 +41,13 @@ public abstract class AsyncThread {
 
 	private long lastPacketOrTaskTime;
 
-	private ExecutorService executor = new ThreadPoolExecutor(4, 10, 30L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+	private ThreadFactory threadFactory = runnable -> {
+		Thread thread = new Thread(runnable);
+		thread.setDaemon(true);
+		return thread;
+	};
+
+	private ExecutorService executor = new ThreadPoolExecutor(4, 10, 30L, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), threadFactory);
 
 	private boolean isParked = false;
 

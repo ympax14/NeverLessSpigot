@@ -1211,9 +1211,11 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
         	/*NeverLessSpigot.getInstance().getHitDetectionThread().addTask(new Runnable() {
 				@Override
 				public void run() {*/
-					if (MinecraftServer.currentTick - entity.lastProjectileHitTick <= 10) {
+					if (MinecraftServer.currentTick - entity.lastProjectileHitTick <= 10 || System.currentTimeMillis() - entity.lastHitTime <= 500) {
 						return;
 					}
+
+					entity.lastHitTime = System.currentTimeMillis();
 
 					float damage = (float) EntityPlayer.this.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
 					float enchantDamage = EnchantmentManager.a(EntityPlayer.this.bA(), (entity instanceof EntityLiving) ? ((EntityLiving) entity).getMonsterType() : EnumMonsterType.UNDEFINED);
@@ -1321,6 +1323,8 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 		if (this.playerInteractManager.getGameMode() == WorldSettings.EnumGamemode.SPECTATOR) {
 			this.setSpectatorTarget(entity);
 		} else {
+			if (!NeverLessSpigot.getInstance().getCPSLimiter().canAttack(this.uniqueID)) return;
+			
 			if (NeverLessSpigotConfig.ticklessCombat) {
 				NeverLessSpigot.getInstance().getHitDetectionThread().getExecutorService().submit(() -> attackAsync(entity));
 			} else if (NeverLessSpigotConfig.asyncCombat) {

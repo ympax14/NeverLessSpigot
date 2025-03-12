@@ -129,6 +129,7 @@ public class NeverLessSpigotConfig {
 		c.addComment("settings.command.ping.other-ping-msg", "The message displayed for the /ping <player> command");
 		c.addComment("settings.statistics", "Enables NeverLessSpigot statistics. This allows developers to see how many NeverLessSpigot servers are running. \nThis has no performance impact and is completely anonymous, but you can opt out of this if you want.");
 		c.addComment("settings.hit-delay", "This sets the delay between player attacks, 20 is the default. Setting this to 0 allows for no hit delay.");
+		c.addComment("settings.cps-limit", "This sets a CPS limit for PvP, 15CPS is the default limit. Setting this to 0 disable the limit.");
 		c.addComment("settings.potion-speed-offset", "This sets the speed offset of splash potions, 0 is the default speed. Setting this higher makes potions splash faster. \nThis config option accepts decimals.");
 		c.addComment("settings.show-player-ips", "Disabling this will prevent display of player ips in the console.");
 		c.addComment("settings.modern-keep-alive", "This enables keep alive handling from modern Minecraft. This may break some plugins.");
@@ -351,6 +352,12 @@ public class NeverLessSpigotConfig {
 	
 	private static void hitDelay() {
 		hitDelay = getInt("settings.hit-delay", 20);
+	}
+
+	public static int cpsLimit;
+
+	private static void cpsLimit() {
+		cpsLimit = getInt("settings.cps-limit", 15);
 	}
 	
 	public static double potionSpeed;

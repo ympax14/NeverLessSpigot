@@ -117,6 +117,7 @@ public abstract class Entity implements ICommandListener {
 	private double as;
 	public boolean ad;
 	protected long lastProjectileHitTick = 0;
+	protected long lastHitTime = System.currentTimeMillis();
 
 	// PaperSpigot start - EAR: Fix bug with teleporting entities
 	public boolean isAddedToChunk() {

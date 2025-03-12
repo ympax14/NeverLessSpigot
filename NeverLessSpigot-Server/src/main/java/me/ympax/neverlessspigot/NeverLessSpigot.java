@@ -20,6 +20,7 @@ import me.ympax.neverlessspigot.commands.*;
 import me.ympax.neverlessspigot.config.NeverLessSpigotConfig;
 import me.ympax.neverlessspigot.handler.MovementHandler;
 import me.ympax.neverlessspigot.handler.PacketHandler;
+import me.ympax.neverlessspigot.hitdetection.CPSLimiter;
 import me.ympax.neverlessspigot.hitdetection.LagCompensator;
 import me.ympax.neverlessspigot.statistics.StatisticsClient;
 import net.minecraft.server.MinecraftServer;
@@ -37,6 +38,7 @@ public class NeverLessSpigot {
 	private CombatThread knockbackThread;
 	private CombatThread hitDetectionThread;
 	private CombatThread playerPositionThread;
+	private CPSLimiter cpsLimiter;
 	
 	private final Executor statisticsExecutor = Executors
 			.newSingleThreadExecutor(new ThreadFactoryBuilder().setNameFormat("NeverLessSpigot Statistics Thread")
@@ -59,43 +61,41 @@ public class NeverLessSpigot {
 	}
 
 	private void initCmds() {
-		
 		SimpleCommandMap commandMap = MinecraftServer.getServer().server.getCommandMap();
 		
 		if (NeverLessSpigotConfig.mobAiCmd) {
 			MobAICommand mobAiCommand = new MobAICommand();
-			commandMap.register(mobAiCommand.getName(), "ns", mobAiCommand);
+			commandMap.register(mobAiCommand.getName(), "neverless", mobAiCommand);
 		}
 		
 		if (NeverLessSpigotConfig.pingCmd) {
 			PingCommand pingCommand = new PingCommand();
-			commandMap.register(pingCommand.getName(), "ns", pingCommand);
+			commandMap.register(pingCommand.getName(), "neverless", pingCommand);
 		}
 	
-		
-		
-		// NachoSpigot commands
-		// TODO: add configuration for all of these
 		SetMaxSlotCommand setMaxSlotCommand = new SetMaxSlotCommand(); // [Nacho-0021] Add setMaxPlayers within Bukkit.getServer() and SetMaxSlot Command
-		commandMap.register(setMaxSlotCommand.getName(), "ns", setMaxSlotCommand);
+		commandMap.register(setMaxSlotCommand.getName(), "neverless", setMaxSlotCommand);
 
 		SpawnMobCommand spawnMobCommand = new SpawnMobCommand();
-		commandMap.register(spawnMobCommand.getName(), "ns", spawnMobCommand);
+		commandMap.register(spawnMobCommand.getName(), "neverless", spawnMobCommand);
 
 		KnockbackCommand knockbackCommand = new KnockbackCommand();
-		commandMap.register(knockbackCommand.getName(), "ns", knockbackCommand);
+		commandMap.register(knockbackCommand.getName(), "neverless", knockbackCommand);
 
 		AsyncCombatCommand asyncKnockbackCommand = new AsyncCombatCommand();
-		commandMap.register(asyncKnockbackCommand.getName(), "ns", asyncKnockbackCommand);
+		commandMap.register(asyncKnockbackCommand.getName(), "neverless", asyncKnockbackCommand);
 
 		TicklessCombatCommand ticklessCombatCommand = new TicklessCombatCommand();
-		commandMap.register(ticklessCombatCommand.getName(), "ns", ticklessCombatCommand);
+		commandMap.register(ticklessCombatCommand.getName(), "neverless", ticklessCombatCommand);
 
 		CombatTPSCommand combatTPSCommand = new CombatTPSCommand();
-		commandMap.register(combatTPSCommand.getName(), "ns", combatTPSCommand);
+		commandMap.register(combatTPSCommand.getName(), "neverless", combatTPSCommand);
 
 		KillEntitiesCommand killEntitiesCommand = new KillEntitiesCommand();
-		commandMap.register(killEntitiesCommand.getName(), "ns", killEntitiesCommand);
+		commandMap.register(killEntitiesCommand.getName(), "neverless", killEntitiesCommand);
+
+		CPSLimitCommand cpsLimitCommand = new CPSLimitCommand();
+		commandMap.register(cpsLimitCommand.getName(), "neverless", cpsLimitCommand);
 	}
 
 	private void initStatistics() {
@@ -175,6 +175,7 @@ public class NeverLessSpigot {
 		if (NeverLessSpigotConfig.asyncCombat || NeverLessSpigotConfig.ticklessCombat) {
 			startAsyncThreads();
 		}
+		cpsLimiter = new CPSLimiter();
 		lagCompensator = new LagCompensator();	
 		if (NeverLessSpigotConfig.asyncTnt) {
 			AsyncExplosions.initExecutor(NeverLessSpigotConfig.fixedPoolSize);
@@ -198,6 +199,10 @@ public class NeverLessSpigot {
 
 	public CombatThread getPlayerPositionThread() {
 		return playerPositionThread;
+	}
+
+	public CPSLimiter getCPSLimiter() {
+		return cpsLimiter;
 	}
 	
     public LagCompensator getLagCompensator() {
