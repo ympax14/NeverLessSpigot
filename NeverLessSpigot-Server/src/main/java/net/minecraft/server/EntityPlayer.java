@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 // CraftBukkit start
 import org.bukkit.Bukkit;
@@ -43,7 +45,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 	public double d;
 	public double e;
 	public final List<ChunkCoordIntPair> chunkCoordIntPairQueue = Lists.newLinkedList();
-	public final List<Integer> removeQueue = Lists.newLinkedList();
+	public final Queue<Integer> removeQueue = new ConcurrentLinkedQueue<>();
 	private final ServerStatisticManager bK;
 	private float bL = Float.MIN_VALUE;
 	private float bM = -1.0E8F;
@@ -241,18 +243,19 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 		}
 
 		
-		while (!this.removeQueue.isEmpty()) {
-            int i = Math.min(this.removeQueue.size(), Integer.MAX_VALUE);
-            int[] aint = new int[i];
-            Iterator<Integer> iterator = this.removeQueue.iterator();
-            int j = 0;
-
-            while (iterator.hasNext() && j < i) {
-                aint[j++] = ((Integer) iterator.next()).intValue();
-                iterator.remove();
+		if (!this.removeQueue.isEmpty()) {
+            List<Integer> batch = new ArrayList<>();
+            Integer entityId;
+            while ((entityId = this.removeQueue.poll()) != null) {
+                batch.add(entityId);
             }
-
-            this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(aint));
+            if (!batch.isEmpty()) {
+                int[] aint = new int[batch.size()];
+                for (int j = 0; j < batch.size(); j++) {
+                    aint[j] = batch.get(j);
+                }
+                this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(aint));
+            }
         }
 		 
 
