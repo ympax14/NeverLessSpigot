@@ -1039,7 +1039,10 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 		this.lastSentExp = -1;
 		this.bM = -1.0F;
 		this.bN = -1;
-		this.removeQueue.addAll(((EntityPlayer) entityhuman).removeQueue);
+		Queue<Integer> sourceQueue = ((EntityPlayer) entityhuman).removeQueue;
+		if (sourceQueue != this.removeQueue) {
+			this.removeQueue.addAll(sourceQueue);
+		}
 	}
 
 	@Override
