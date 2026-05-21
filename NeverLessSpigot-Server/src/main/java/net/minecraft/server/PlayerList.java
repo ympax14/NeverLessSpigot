@@ -567,6 +567,7 @@ public abstract class PlayerList {
 		}
 
 		NeverLessSpigot.getInstance().getLagCompensator().clearCache(bukkit); // Nacho
+		NeverLessSpigot.getInstance().getCPSLimiter().clearPlayer(bukkit.getUniqueId());
 		
 		return playerQuitEvent.getQuitMessage(); // CraftBukkit
 	}

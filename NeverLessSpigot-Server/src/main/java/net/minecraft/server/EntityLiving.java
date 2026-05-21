@@ -1001,24 +1001,10 @@ public abstract class EntityLiving extends Entity {
 				vertical = kb.getVertical();
 			}
 
-			// NeverLessSpigot start - correct knockback friction (change to division instead of multiplication)
-			//this.motX /= kb.getInheritHorizontalStrength();
-			//this.motY /= kb.getInheritVerticalStrength();
-			//this.motZ /= kb.getInheritHorizontalStrength();
-			// NeverLessSpigot end
-
-			double knockbackReductionHorizontal = 1.0D - 1.0;
-            double knockbackReductionVertical = 1.0D - 1.0;
-
-            double frictionHorizontal = 2.0D - knockbackReductionHorizontal;
-            double frictionVertical = (2.0D - knockbackReductionVertical) - 0.25D;
-
-            horizontal *= (1.0D - knockbackReductionHorizontal);
-            vertical *= (1.0D - knockbackReductionVertical);
-
-            this.motX /= frictionHorizontal;
-            this.motY /= frictionVertical;
-            this.motZ /= frictionHorizontal;
+			// Dampen existing momentum before applying new knockback impulse
+			this.motX *= 0.5D;
+			this.motY /= 1.75D;
+			this.motZ *= 0.5D;
 			this.motX -= x / magnitude * horizontal;
 			this.motY += vertical;
 			this.motZ -= z / magnitude * horizontal;

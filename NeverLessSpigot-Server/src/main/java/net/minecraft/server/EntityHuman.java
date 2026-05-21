@@ -71,7 +71,7 @@ public abstract class EntityHuman extends EntityLiving {
 	public int oldLevel = -1;
 
 	public int ticksDown = 0;
-    public boolean shouldDealSprintKnockback = false;
+	public volatile boolean shouldDealSprintKnockback = false;
 
 	@Override
 	public CraftHumanEntity getBukkitEntity() {

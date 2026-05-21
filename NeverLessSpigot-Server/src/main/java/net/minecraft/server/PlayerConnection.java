@@ -1683,6 +1683,36 @@ public class PlayerConnection implements PacketListenerPlayIn, IUpdatePlayerList
 		if (this.player.dead) {
 			return; // CraftBukkit
 		}
+
+		// Tickless fast path: for ATTACK packets, bypass the main-thread relay
+		// (ensureMainThread) and submit directly to the async combat thread from the
+		// Netty thread. This removes the up-to-one-tick (~50 ms) latency penalty.
+		// entitiesById.get() is read-only here; structural writes only happen on the
+		// main thread, so the read is safe in practice.
+		if (NeverLessSpigotConfig.ticklessCombat
+				&& packetplayinuseentity.a() == PacketPlayInUseEntity.EnumEntityUseAction.ATTACK
+				&& !this.minecraftServer.isMainThread()) {
+
+			if (this.player.playerInteractManager.getGameMode() == WorldSettings.EnumGamemode.SPECTATOR) return;
+			if (!NeverLessSpigot.getInstance().getCPSLimiter().canAttack(this.player.uniqueID)) return;
+
+			WorldServer fastWorld = this.minecraftServer.getWorldServer(this.player.dimension);
+			Entity fastTarget = packetplayinuseentity.a(fastWorld);
+			if (fastTarget == null || fastTarget instanceof EntityItem
+					|| fastTarget instanceof EntityExperienceOrb
+					|| fastTarget instanceof EntityArrow
+					|| fastTarget == this.player) return;
+
+			// LOS check is not thread-safe (world ray-cast); use maxReachSqrd as the cap.
+			// distanceSqrdAccurate is thread-safe (uses LagCompensator internally).
+			if (this.player.distanceSqrdAccurate(fastTarget) > NeverLessSpigotConfig.maxReachSqrd) return;
+
+			this.player.resetIdleTimer();
+			NeverLessSpigot.getInstance().getHitDetectionThread().getExecutorService()
+					.submit(() -> this.player.attackAsync(fastTarget));
+			return;
+		}
+
 		PlayerConnectionUtils.ensureMainThread(packetplayinuseentity, this, this.player.u());
 		WorldServer worldserver = this.minecraftServer.getWorldServer(this.player.dimension);
 		Entity entity = packetplayinuseentity.a(worldserver);

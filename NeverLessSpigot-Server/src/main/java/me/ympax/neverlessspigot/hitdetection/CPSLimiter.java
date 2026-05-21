@@ -1,27 +1,35 @@
 package me.ympax.neverlessspigot.hitdetection;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import me.ympax.neverlessspigot.config.NeverLessSpigotConfig;
 
 public class CPSLimiter {
-    private final Map<UUID, List<Long>> attackTimestamps = new HashMap<>();
+    // In tickless mode canAttack() is called from the Netty thread (fast path),
+    // so ConcurrentHashMap + synchronized(deque) is required for thread safety.
+    private final ConcurrentHashMap<UUID, ArrayDeque<Long>> timestamps = new ConcurrentHashMap<>();
 
     public boolean canAttack(UUID playerId) {
         if (NeverLessSpigotConfig.cpsLimit == 0) return true;
 
-        long currentTime = System.currentTimeMillis();
-        attackTimestamps.putIfAbsent(playerId, new ArrayList<>());
+        long now = System.currentTimeMillis();
+        long windowStart = now - 1000L;
 
-        List<Long> timestamps = attackTimestamps.get(playerId);
+        ArrayDeque<Long> deque = timestamps.computeIfAbsent(playerId, k -> new ArrayDeque<>(32));
 
-        timestamps.removeIf(time -> time < currentTime - 1000);
-
-        if (timestamps.size() >= NeverLessSpigotConfig.cpsLimit) {
-            return false; 
+        synchronized (deque) {
+            while (!deque.isEmpty() && deque.peekFirst() < windowStart) {
+                deque.pollFirst();
+            }
+            if (deque.size() >= NeverLessSpigotConfig.cpsLimit) return false;
+            deque.addLast(now);
+            return true;
         }
+    }
 
-        timestamps.add(currentTime);
-        return true;
+    public void clearPlayer(UUID playerId) {
+        timestamps.remove(playerId);
     }
 }

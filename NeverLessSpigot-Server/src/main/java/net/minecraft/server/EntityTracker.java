@@ -30,7 +30,7 @@ public class EntityTracker {
 
 	public void track(Entity entity) {
 		if (entity instanceof EntityPlayer) {
-			this.addEntity(entity, 512, 2);
+			this.addEntity(entity, 512, 1); // NeverLessSpigot - 1-tick updates for smoother PvP animation
 		} else if (entity instanceof EntityFishingHook) {
 			this.addEntity(entity, 64, 5, true);
 		} else if (entity instanceof EntityArrow) {

@@ -221,9 +221,9 @@ public class NetworkManager extends SimpleChannelInboundHandler<Packet> {
 			this.sendPacketQueue();
 
 			if (!shouldCheckPacket) {
-				// Wait a bit before checking for combat packets to send with priority
-				// The priority packet writer uses the last context executor
-				if (this.packetWrites.get() > 5) {
+				// Enable the fast-path after the very first packet write so the
+				// channel pipeline is guaranteed to be initialized.
+				if (this.packetWrites.get() > 0) {
 					shouldCheckPacket = true;
 				}
 			} else {

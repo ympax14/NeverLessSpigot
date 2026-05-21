@@ -1213,84 +1213,134 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 	}
 
 	public void attackAsync(Entity entity) {
-    	if (entity.aD() && !entity.l(this)) {
-        	/*NeverLessSpigot.getInstance().getHitDetectionThread().addTask(new Runnable() {
-				@Override
-				public void run() {*/
-					if (MinecraftServer.currentTick - entity.lastProjectileHitTick <= 10 || System.currentTimeMillis() - entity.lastHitTime <= 500) {
-						return;
-					}
+		if (!entity.aD() || entity.l(this)) return;
 
-					entity.lastHitTime = System.currentTimeMillis();
+		// Reject invulnerable targets before consuming the hit delay — creative/spectator
+		// players would fail damageEntity() anyway; no point in stamping lastHitTime.
+		if (entity instanceof EntityPlayer && ((EntityPlayer) entity).abilities.isInvulnerable) return;
 
-					float damage = (float) EntityPlayer.this.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
-					float enchantDamage = EnchantmentManager.a(EntityPlayer.this.bA(), (entity instanceof EntityLiving) ? ((EntityLiving) entity).getMonsterType() : EnumMonsterType.UNDEFINED);
-					int fireAspectLevel = EnchantmentManager.getFireAspectEnchantmentLevel(EntityPlayer.this);
-	
-					KnockbackProfile knockback = (entity.getKnockbackProfile() == null ? KnockbackConfig.getCurrentKb() : entity.getKnockbackProfile());
-					double deltaX = entity.locX - EntityPlayer.this.locX;
-					double deltaZ = entity.locZ - EntityPlayer.this.locZ;
-					double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
-					if (distance == 0) distance = 1;
-					double directionX = deltaX / distance;
-					double directionZ = deltaZ / distance;
-	
-					double velX, velY, velZ;
-					if (knockback.getInheritHorizontal()) {
-						double entityVelX = entity.motX * knockback.getInheritHorizontalStrength();
-						double entityVelZ = entity.motZ * knockback.getInheritHorizontalStrength();
-						velX = entityVelX + directionX;
-						velZ = entityVelZ + directionZ;
-					} else {
-						velX = directionX;
-						velZ = directionZ;
-					}
-	
-					velX *= knockback.getHorizontal();
-					velZ *= knockback.getHorizontal();
-	
-					if (knockback.getInheritVertical()) {
-						velY = entity.motY * knockback.getInheritVerticalStrength() + knockback.getVertical();
-					} else {
-						velY = knockback.getVertical();
-					}
-	
-					if (entity.onGround) {
-						velX *= knockback.getGroundHorizontalMultiplier();
-						velY *= knockback.getGroundVerticalMultiplier();
-						velZ *= knockback.getGroundHorizontalMultiplier();
-					}
-	
-					int enchLvl = EnchantmentManager.getEnchantmentLevel(Enchantment.KNOCKBACK.id, EntityPlayer.this.inventory.getItemInHand());
-					if (enchLvl > 0) {
-						velX += enchLvl * 0.6;
-						velZ += enchLvl * 0.6;
-					}
-	
-					if (EntityPlayer.this.shouldDealSprintKnockback) {
-						velX += 1 * knockback.getSprintHorizontalMultiplier();
-						velY += 1 * knockback.getSprintVerticalMultiplier();
-						velZ += 1 * knockback.getSprintHorizontalMultiplier();
-						EntityPlayer.this.shouldDealSprintKnockback = false;
-					}
-	
-					double yOff = entity.locY - EntityPlayer.this.locY;
-					if (knockback.getComboMode() && (yOff > knockback.getComboHeight() || MinecraftServer.currentTick - EntityPlayer.this.ticksDown < knockback.getComboTicks())) {
-						velY = knockback.getComboVelocity();
-					}
-					if (knockback.getLimitVertical() && yOff > knockback.getVerticalMax()) {
-						velY = 0.0;
-					}
+		// Resolve profile first so hitDelay is driven by the profile, not hardcoded
+		final KnockbackProfile knockback = entity.getKnockbackProfile() != null
+			? entity.getKnockbackProfile()
+			: KnockbackConfig.getCurrentKb();
 
-					final double vX = velX;
-					final double vY = velY;
-					final double vZ = velZ;
-	
-					MinecraftServer.getServer().postToMainThread(() -> EntityPlayer.this.applyAsyncAttack(entity, damage, enchantDamage, fireAspectLevel, vX, vY, vZ));
-				/*}
-        	});*/
-			//if (!NeverLessSpigotConfig.asyncTickless) NeverLessSpigot.getInstance().getHitDetectionThread().run();
-    	}
+		final long hitDelayMs = (long) knockback.getHitDelay() * 50L; // ticks → ms
+		if (MinecraftServer.currentTick - entity.lastProjectileHitTick <= 10
+			|| System.currentTimeMillis() - entity.lastHitTime <= hitDelayMs) {
+			return;
+		}
+
+		// Stamp the hit immediately to block re-entry from concurrent async threads
+		entity.lastHitTime = System.currentTimeMillis();
+
+		// --- Atomic snapshot of entity state to avoid main-thread race conditions ---
+		final double entityMotX = entity.motX;
+		final double entityMotY = entity.motY;
+		final double entityMotZ = entity.motZ;
+		final double entityLocX = entity.locX;
+		final double entityLocY = entity.locY;
+		final double entityLocZ = entity.locZ;
+		final boolean onGround   = entity.onGround;
+
+		// Consume sprint flag atomically before the rest of the calculation
+		final boolean sprintKb = EntityPlayer.this.shouldDealSprintKnockback;
+		if (sprintKb) EntityPlayer.this.shouldDealSprintKnockback = false;
+
+		// --- Attack direction: use lag-compensated target position when available ---
+		double deltaX = entityLocX - EntityPlayer.this.locX;
+		double deltaZ = entityLocZ - EntityPlayer.this.locZ;
+
+		if (NeverLessSpigotConfig.improvedHitDetection && entity instanceof EntityPlayer) {
+			EntityPlayer victim = (EntityPlayer) entity;
+			if (victim.playerConnection.getClass().equals(PlayerConnection.class)) {
+				// Rewind to where the attacker perceived the target based on their ping
+				org.bukkit.Location lagLoc = NeverLessSpigot.getInstance()
+					.getLagCompensator()
+					.getHistoryLocation(victim.getBukkitEntity(), EntityPlayer.this.ping);
+				deltaX = lagLoc.getX() - EntityPlayer.this.locX;
+				deltaZ = lagLoc.getZ() - EntityPlayer.this.locZ;
+			}
+		}
+
+		double distance = Math.sqrt(deltaX * deltaX + deltaZ * deltaZ);
+		if (distance == 0) distance = 1;
+		final double dirX = deltaX / distance;
+		final double dirZ = deltaZ / distance;
+
+		// --- Weapon stats ---
+		final float damage     = (float) EntityPlayer.this.getAttributeInstance(GenericAttributes.ATTACK_DAMAGE).getValue();
+		final float enchantDmg = EnchantmentManager.a(EntityPlayer.this.bA(),
+			entity instanceof EntityLiving ? ((EntityLiving) entity).getMonsterType() : EnumMonsterType.UNDEFINED);
+		final int fireAspect   = EnchantmentManager.getFireAspectEnchantmentLevel(EntityPlayer.this);
+		final int enchKbLvl    = EnchantmentManager.getEnchantmentLevel(
+			Enchantment.KNOCKBACK.id, EntityPlayer.this.inventory.getItemInHand());
+
+		// --- Knockback calculation ---
+		double velX, velY, velZ;
+
+		if (knockback.getInheritHorizontal()) {
+			velX = entityMotX * knockback.getInheritHorizontalStrength() + dirX;
+			velZ = entityMotZ * knockback.getInheritHorizontalStrength() + dirZ;
+		} else {
+			velX = dirX;
+			velZ = dirZ;
+		}
+
+		velX *= knockback.getHorizontal();
+		velZ *= knockback.getHorizontal();
+
+		velY = knockback.getInheritVertical()
+			? entityMotY * knockback.getInheritVerticalStrength() + knockback.getVertical()
+			: knockback.getVertical();
+
+		if (onGround) {
+			velX *= knockback.getGroundHorizontalMultiplier();
+			velY *= knockback.getGroundVerticalMultiplier();
+			velZ *= knockback.getGroundHorizontalMultiplier();
+		}
+
+		// Enchantment KB: directional (not uniform on both axes)
+		if (enchKbLvl > 0) {
+			velX += dirX * enchKbLvl * 0.5;
+			velZ += dirZ * enchKbLvl * 0.5;
+		}
+
+		// Sprint KB: multiply existing directional velocity
+		if (sprintKb) {
+			velX *= knockback.getSprintHorizontalMultiplier();
+			velZ *= knockback.getSprintHorizontalMultiplier();
+			velY *= knockback.getSprintVerticalMultiplier();
+		}
+
+		// Combo mode: suppress upward KB when target is already elevated
+		final double yOff = entityLocY - EntityPlayer.this.locY;
+		if (knockback.getComboMode() && (yOff > knockback.getComboHeight()
+			|| MinecraftServer.currentTick - EntityPlayer.this.ticksDown < knockback.getComboTicks())) {
+			velY = knockback.getComboVelocity();
+		}
+
+		if (knockback.getLimitVertical() && velY > knockback.getVerticalMax()) {
+			velY = knockback.getVerticalMax();
+		}
+
+		final double vX = velX;
+		final double vY = velY;
+		final double vZ = velZ;
+		final int profileHitDelay = knockback.getHitDelay();
+
+		if (NeverLessSpigotConfig.ticklessCombat && entity instanceof EntityPlayer) {
+			// Tickless: send velocity packet immediately from this async thread — no main-thread round-trip.
+			// Main thread only handles damage confirmation and observer broadcast.
+			// velocityChanged is cleared on the main thread in applyAsyncAttackDamageOnly
+			// (not here) to avoid a non-volatile write that could race with the entity tracker.
+			EntityPlayer victim = (EntityPlayer) entity;
+			victim.playerConnection.sendPacket(new PacketPlayOutEntityVelocity(victim.getId(), vX, vY, vZ));
+			MinecraftServer.getServer().postToMainThread(() ->
+				EntityPlayer.this.applyAsyncAttackDamageOnly(entity, damage, enchantDmg, fireAspect, vX, vY, vZ, profileHitDelay));
+		} else {
+			MinecraftServer.getServer().postToMainThread(() ->
+				EntityPlayer.this.applyAsyncAttack(entity, damage, enchantDmg, fireAspect, vX, vY, vZ));
+		}
 	}
 
 	private void applyAsyncAttack(Entity entity, float damage, float enchantDamage, int fireAspect, double velX, double velY, double velZ) {
@@ -1319,9 +1369,108 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
 
 					victim.playerConnection.sendPacket(new PacketPlayOutEntityVelocity(victim.getId(), velX, velY, velZ));
 					victim.velocityChanged = false;
+					broadcastKbToObservers(victim, velX, velY, velZ);
 				}
         	}
     	}
+	}
+
+	// Tickless mode: velocity was already pushed to the victim from the async thread.
+	// Runs on the main thread to: confirm damage, fire PlayerVelocityEvent, update
+	// server-side motX/Y/Z, and broadcast KB to observers.
+	// profileHitDelay (ticks) tunes maxNoDamageTicks so the vanilla invincibility
+	// window aligns with the configured knockback profile hit delay.
+	private void applyAsyncAttackDamageOnly(Entity entity, float damage, float enchantDamage, int fireAspect, double velX, double velY, double velZ, int profileHitDelay) {
+		// Snapshot pre-knockback momentum for PlayerVelocityEvent cancellation recovery.
+		final double prevMotX = entity.motX;
+		final double prevMotY = entity.motY;
+		final double prevMotZ = entity.motZ;
+
+		int prevMaxNoDamage = -1;
+		if (entity instanceof EntityLiving) {
+			EntityLiving living = (EntityLiving) entity;
+			prevMaxNoDamage = living.maxNoDamageTicks;
+			living.maxNoDamageTicks = profileHitDelay;
+		}
+
+		boolean hit = entity.damageEntity(DamageSource.playerAttack(this), damage + enchantDamage);
+
+		if (prevMaxNoDamage != -1) {
+			((EntityLiving) entity).maxNoDamageTicks = prevMaxNoDamage;
+		}
+
+		if (!hit) {
+			// Damage rejected (invincibility frames or other guard). The velocity packet
+			// was already sent to the victim — send a correction to restore their momentum.
+			if (entity instanceof EntityPlayer) {
+				EntityPlayer victim = (EntityPlayer) entity;
+				victim.playerConnection.sendPacket(new PacketPlayOutEntityVelocity(victim.getId(), prevMotX, prevMotY, prevMotZ));
+				victim.velocityChanged = false;
+			}
+			return;
+		}
+
+		if (entity instanceof EntityPlayer) {
+			EntityPlayer victim = (EntityPlayer) entity;
+
+			// Fire PlayerVelocityEvent on the main thread so plugins (anti-cheat, safe zones…)
+			// can inspect or cancel the knockback, consistent with the non-tickless path.
+			final Vector velocity = new Vector(velX, velY, velZ);
+			PlayerVelocityEvent event = new PlayerVelocityEvent(victim.getBukkitEntity(), velocity.clone());
+			Bukkit.getPluginManager().callEvent(event);
+
+			if (event.isCancelled()) {
+				// Undo: restore pre-attack momentum server-side and send correction to victim.
+				entity.motX = prevMotX;
+				entity.motY = prevMotY;
+				entity.motZ = prevMotZ;
+				victim.playerConnection.sendPacket(new PacketPlayOutEntityVelocity(victim.getId(), prevMotX, prevMotY, prevMotZ));
+				victim.velocityChanged = false;
+			} else {
+				double fVelX = event.getVelocity().getX();
+				double fVelY = event.getVelocity().getY();
+				double fVelZ = event.getVelocity().getZ();
+
+				// If a plugin modified the velocity, send the corrected value to victim.
+				if (fVelX != velX || fVelY != velY || fVelZ != velZ) {
+					victim.playerConnection.sendPacket(new PacketPlayOutEntityVelocity(victim.getId(), fVelX, fVelY, fVelZ));
+				}
+
+				entity.motX = fVelX;
+				entity.motY = fVelY;
+				entity.motZ = fVelZ;
+				victim.velocityChanged = false;
+				broadcastKbToObservers(victim, fVelX, fVelY, fVelZ);
+			}
+		} else {
+			// Non-player entity: just override server-side motion (no velocity packet needed).
+			entity.motX = velX;
+			entity.motY = velY;
+			entity.motZ = velZ;
+		}
+
+		if (fireAspect > 0 && !entity.isBurning()) {
+			EntityCombustByEntityEvent combustEvent = new EntityCombustByEntityEvent(
+				this.getBukkitEntity(), entity.getBukkitEntity(), fireAspect * 4);
+			Bukkit.getPluginManager().callEvent(combustEvent);
+			if (!combustEvent.isCancelled()) {
+				entity.setOnFire(combustEvent.getDuration());
+			}
+		}
+	}
+
+	// Sends a knockback velocity packet to every player currently tracking the
+	// victim, excluding the victim themselves (who already received it directly).
+	// Must be called on the main thread (trackedPlayers is not thread-safe).
+	private static void broadcastKbToObservers(EntityPlayer victim, double velX, double velY, double velZ) {
+		EntityTrackerEntry entry = ((WorldServer) victim.world).getTracker().trackedEntities.get(victim.getId());
+		if (entry == null) return;
+		PacketPlayOutEntityVelocity packet = new PacketPlayOutEntityVelocity(victim.getId(), velX, velY, velZ);
+		for (EntityPlayer observer : entry.trackedPlayers) {
+			if (observer != victim) {
+				observer.playerConnection.sendPacket(packet);
+			}
+		}
 	}
 
 	@Override

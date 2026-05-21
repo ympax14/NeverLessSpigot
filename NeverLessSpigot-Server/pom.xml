@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>neverlessspigot</artifactId>
 	<packaging>jar</packaging>
-	<version>1.8.8-R0.2-SNAPSHOT</version>
+	<version>1.8.8-R0.3-SNAPSHOT</version>
 	<name>NeverLessSpigot</name>
 
 	<properties>
